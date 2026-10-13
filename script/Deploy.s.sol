@@ -178,6 +178,9 @@ contract Deploy is Script, HoodDeployer {
         try vm.rpc("eth_blockNumber", "[]") returns (bytes memory raw) {
             for (uint256 i = 0; i < raw.length; i++) n = (n << 8) | uint8(raw[i]);
         } catch {
+            // On Arbitrum chains block.number is the Ethereum block number,
+            // which would point event scans at the wrong place entirely.
+            require(block.chainid != 46630 && block.chainid != 4663, "could not read the chain's block height");
             n = block.number;
         }
     }

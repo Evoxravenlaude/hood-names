@@ -27,7 +27,8 @@ interface Registration {
 
 interface Pending {
   reg: Registration;
-  committedAt: number;
+  /** When the reservation was sent, as this browser saw it. The chain's own record wins once readable. */
+  committedAt?: number;
 }
 
 const storeKey = (label: string, owner: Address) => `hood:commit:${deployment?.chainId}:${owner.toLowerCase()}:${label}`;
@@ -37,7 +38,7 @@ function loadPending(label: string, owner: Address | undefined): Pending | null 
   try {
     const raw = localStorage.getItem(storeKey(label, owner));
     if (!raw) return null;
-    const p = JSON.parse(raw) as { reg: Omit<Registration, 'duration'> & { duration: string }; committedAt: number };
+    const p = JSON.parse(raw) as { reg: Omit<Registration, 'duration'> & { duration: string }; committedAt?: number };
     return { committedAt: p.committedAt, reg: { ...p.reg, duration: BigInt(p.reg.duration) } };
   } catch {
     return null;
@@ -146,19 +147,28 @@ function RegisterName({ label }: { label: string }) {
     args: [label],
     query: { enabled: !!deployment },
   });
-  const allowance = useReadContract({
-    address: coin.address,
-    abi: erc20Abi,
-    functionName: 'allowance',
-    args: address && deployment ? [address, deployment!.HoodRegistrarController] : undefined,
-    query: { enabled: coin.enabled && !!address },
-  });
-
   const q = quote.data;
-  const ready = pending ? now >= pending.committedAt + Number(minAge ?? 60n) + 3 : false;
-  const expired = pending ? now > pending.committedAt + Number(maxAge ?? 86400n) - 60 : false;
-  const waitLeft = pending ? Math.max(0, Math.ceil(pending.committedAt + Number(minAge ?? 60n) + 3 - now)) : 0;
-  const step = registered ? 3 : !pending ? 0 : ready && !expired ? 2 : 1;
+  // The reservation's time as the chain recorded it, so a refresh, another
+  // tab or a lost receipt cannot strand it.
+  const commitment = useReadContract({
+    address: deployment?.HoodRegistrarController,
+    abi: controllerAbi,
+    functionName: 'makeCommitment',
+    args: pending ? ([pending.reg] as never) : undefined,
+    query: { enabled: !!pending && !!deployment },
+  });
+  const onChain = useReadContract({
+    address: deployment?.HoodRegistrarController,
+    abi: controllerAbi,
+    functionName: 'commitments',
+    args: commitment.data ? [commitment.data as Hex] : undefined,
+    query: { enabled: !!commitment.data, refetchInterval: 5_000 },
+  });
+  const committedAt = onChain.data && onChain.data > 0n ? Number(onChain.data) : pending?.committedAt;
+  const ready = committedAt ? now >= committedAt + Number(minAge ?? 60n) + 3 : false;
+  const expired = committedAt ? now > committedAt + Number(maxAge ?? 86400n) - 60 : false;
+  const waitLeft = committedAt ? Math.max(0, Math.ceil(committedAt + Number(minAge ?? 60n) + 3 - now)) : 0;
+  const step = registered ? 3 : !pending || !committedAt ? 0 : ready && !expired ? 2 : 1;
 
   const s = status.data;
   const length = [...label].length;
@@ -178,7 +188,8 @@ function RegisterName({ label }: { label: string }) {
   const startCommit = async () => {
     if (!address || !deployment) return;
     const node = nodeOf(label);
-    const reg: Registration = {
+    // A reservation saved earlier but never confirmed is sent again as it is.
+    const reg: Registration = pending?.reg ?? {
       label,
       owner: address,
       duration,
@@ -188,7 +199,7 @@ function RegisterName({ label }: { label: string }) {
       reverseRecord: primary ? 1 : 0,
       referrer,
     };
-    const ok = await tx.run([
+    await tx.run([
       {
         label: 'Reserving the name',
         args: async () => {
@@ -201,13 +212,20 @@ function RegisterName({ label }: { label: string }) {
           return { address: deployment!.HoodRegistrarController, abi: controllerAbi, functionName: 'commit', args: [commitment] };
         },
       },
-    ]);
-    if (ok) {
-      const p = { reg, committedAt: Math.floor(Date.now() / 1000) };
-      savePending(p, label, address);
-      setPending(p);
-      tx.reset();
-    }
+    ], {
+      // The secret is saved before the wallet sends anything, so it is never lost.
+      onReviewed: () => {
+        const p = { reg };
+        savePending(p, label, address);
+        setPending(p);
+      },
+      onSent: () => {
+        const p = { reg, committedAt: Math.floor(Date.now() / 1000) };
+        savePending(p, label, address);
+        setPending(p);
+      },
+      onSuccess: () => tx.reset(),
+    });
   };
 
   const finish = async () => {
@@ -220,7 +238,10 @@ function RegisterName({ label }: { label: string }) {
     });
     const steps: Parameters<typeof tx.run>[0] = [];
     const isToken = payment.token !== zeroAddress;
-    if (isToken && (allowance.data ?? 0n) < fresh.amountDue) {
+    const allowed = isToken
+      ? await readContract(config, { address: payment.token, abi: erc20Abi, functionName: 'allowance', args: [address, deployment!.HoodRegistrarController] })
+      : 0n;
+    if (isToken && allowed < fresh.amountDue) {
       steps.push({
         label: `Allowing ${coin.symbol} payment`,
         args: () => ({ address: payment.token, abi: erc20Abi, functionName: 'approve', args: [deployment!.HoodRegistrarController, fresh.amountDue] }),
@@ -237,12 +258,13 @@ function RegisterName({ label }: { label: string }) {
         value: isToken ? 0n : fresh.amountDue + fresh.amountDue / 100n,
       }),
     });
-    const ok = await tx.run(steps);
-    if (ok) {
-      savePending(null, label, address);
-      setPending(null);
-      setRegistered(true);
-    }
+    await tx.run(steps, {
+      onSuccess: () => {
+        savePending(null, label, address);
+        setPending(null);
+        setRegistered(true);
+      },
+    });
   };
 
   const startOver = () => {
@@ -319,7 +341,7 @@ function RegisterName({ label }: { label: string }) {
                   </button>
                 )}
               </div>
-              {coin.isTest && <p className="hint">tUSD is a free test dollar on this network. Get some from <Link to="/names">My names</Link>.</p>}
+              {coin.isTest && <p className="hint">tUSD is a free test dollar on this network. Claim some on the <Link to="/faucet">test tokens</Link> page.</p>}
             </section>
 
             <section className="card card-pad stack" style={{ gap: 18 }}>

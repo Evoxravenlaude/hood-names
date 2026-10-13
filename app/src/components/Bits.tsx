@@ -11,7 +11,7 @@ export function TxNotice({ state, success }: { state: TxState; success?: string 
   if (state.busy)
     return (
       <p className="hint" role="status">
-        {state.step ?? 'Working'}… {state.hash ? 'waiting for the network.' : 'confirm in your wallet.'}{' '}
+        {state.step === 'Preparing' ? 'Preparing…' : <>{state.step ?? 'Working'}… {state.hash ? 'waiting for the network.' : 'confirm in your wallet.'}</>}{' '}
         {link && <a href={link} target="_blank" rel="noreferrer">View</a>}
       </p>
     );

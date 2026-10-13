@@ -6,6 +6,7 @@ import { deployment, GRACE_PERIOD, parentName } from '../config';
 import { ago, date, shortAddress } from '../lib/format';
 import { useNameStatus, useRegisteredLabels } from '../lib/hooks';
 import { fullName, parseLabel } from '../lib/names';
+import { Avatar } from '../components/Avatar';
 
 const RECENT = 30 * 86400;
 
@@ -123,6 +124,12 @@ function Verdict({ input }: { input: string }) {
         <div style={{ fontSize: 20, fontWeight: 600 }}>{headline}</div>
         {detail && <div style={{ fontSize: 16, lineHeight: 1.5, marginTop: 4 }}>{detail}</div>}
       </div>
+      {facts.length > 0 && label && s?.state === 'Active' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '20px 28px 0' }}>
+          <Avatar label={label} size={48} remote={false} />
+          <span className="mono" style={{ fontSize: 20, fontWeight: 500 }}>{fullName(label)}</span>
+        </div>
+      )}
       {facts.length > 0 && (
         <dl className="facts" style={{ padding: '8px 28px 20px' }}>
           {facts.map((f) => (

@@ -11,6 +11,9 @@ import { MyNames } from './pages/MyNames';
 import { Manage } from './pages/Manage';
 import { Check } from './pages/Check';
 import { GiftCards } from './pages/GiftCards';
+import { Faucet } from './pages/Faucet';
+import { ReviewProvider } from './components/Review';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles.css';
 
 const queryClient = new QueryClient({
@@ -30,8 +33,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
+        <ReviewProvider>
         <BrowserRouter>
           <Layout>
+            <ErrorBoundary>
             <Routes>
               <Route path="/" element={<Search />} />
               <Route path="/register/:label" element={<Register />} />
@@ -39,10 +44,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <Route path="/name/:label" element={<Manage />} />
               <Route path="/check" element={<Check />} />
               <Route path="/gift-cards" element={<GiftCards />} />
+              <Route path="/faucet" element={<Faucet />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </ErrorBoundary>
           </Layout>
         </BrowserRouter>
+        </ReviewProvider>
       </QueryClientProvider>
     </WagmiProvider>
   </React.StrictMode>,

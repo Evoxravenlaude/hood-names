@@ -1,4 +1,4 @@
-import { formatEther, formatUnits, type Address } from 'viem';
+import { formatEther, formatUnits, getAddress, type Address } from 'viem';
 
 export const shortAddress = (a?: string) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '');
 
@@ -46,4 +46,9 @@ export function ago(seconds: bigint | number | undefined): string {
   return 'minutes';
 }
 
-export const isAddress = (s: string): s is Address => /^0x[0-9a-fA-F]{40}$/.test(s.trim());
+/** True for any 0x address, whatever its letter case. */
+export const isAddress = (s: string): boolean => /^0x[0-9a-fA-F]{40}$/.test(s.trim());
+
+/** A typed address in its checksummed form, or undefined. Letter case is ignored. */
+export const toAddress = (s: string): Address | undefined =>
+  isAddress(s) ? getAddress(s.trim().toLowerCase()) : undefined;

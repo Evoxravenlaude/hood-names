@@ -15,6 +15,10 @@ Short procedures for the people operating the contracts. Draft.
 2. Renewals stay open, capped at one year ahead, so nobody loses a name during the incident. Stablecoin payments do not depend on the ETH rate.
 3. Only the owner can unpause. If the guardian key is the problem, replace it with `setGuardian` before unpausing.
 
+## Testnet test dollar
+
+`script/UpgradeTestStablecoin.s.sol` swaps the test dollar for the current version (1,000 per claim, once every six hours) and stops accepting the old one. The testnet workflow runs it on every push and it does nothing once current. It refuses mainnet and any token whose symbol is not `tUSD`. Balances of the old token stay in wallets but can no longer pay; referral earnings held in it can still be withdrawn.
+
 ## Replacing the registrar controller
 
 The lookalike and reserved-name state lives in `HoodNameGuard` and survives. A new controller needs:

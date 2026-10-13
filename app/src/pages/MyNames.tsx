@@ -1,12 +1,14 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { parseUnits, zeroAddress } from 'viem';
+import { zeroAddress } from 'viem';
 import { useAccount, useReadContract } from 'wagmi';
-import { pointsLedgerAbi, referralHubAbi, testUsdAbi } from '../abi';
-import { deployment, GRACE_PERIOD, modules } from '../config';
+import { pointsLedgerAbi, referralHubAbi } from '../abi';
+import { chain, deployment, explorerUrl, GRACE_PERIOD, modules } from '../config';
+import { Avatar } from '../components/Avatar';
 import { TxNotice } from '../components/Bits';
 import { ConnectPrompt } from '../components/Wallet';
 import { date, eth, token, usd } from '../lib/format';
-import { useOwnedNames, usePrimaryName, useStablecoin } from '../lib/hooks';
+import { useOwnedNames, usePointsActivity, usePrimaryName, useStablecoin } from '../lib/hooks';
 import { fullName } from '../lib/names';
 import { useTx } from '../lib/tx';
 
@@ -49,9 +51,9 @@ export function MyNames() {
               </div>
             ) : (
               <div className="table-wrap">
-                <table className="list">
+                <table className="list fluid">
                   <thead>
-                    <tr><th scope="col">Name</th><th scope="col">Status</th><th scope="col">Expires</th><th scope="col"><span className="sr-only">Actions</span></th></tr>
+                    <tr><th scope="col">Name</th><th scope="col">Status</th><th scope="col" className="hide-sm">Expires</th><th scope="col"><span className="sr-only">Actions</span></th></tr>
                   </thead>
                   <tbody>
                     {owned.data.map(({ label, status }) => {
@@ -59,14 +61,15 @@ export function MyNames() {
                       const soon = status.state === 'Active' && status.expires - now < 30n * DAY;
                       return (
                         <tr key={label}>
-                          <td>
+                          <td style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <Avatar label={label} size={32} />
                             <Link className="name-link" to={`/name/${encodeURIComponent(label)}`}>{name}</Link>
                             {primary.data === name && <span className="tag">Primary</span>}
                           </td>
                           <td style={{ color: status.state === 'Grace' || soon ? 'var(--warn)' : undefined }}>
                             {status.state === 'Grace' ? 'Expired · grace period' : soon ? `Expires in ${Number((status.expires - now) / DAY)} days` : 'Active'}
                           </td>
-                          <td>{date(status.expires)}</td>
+                          <td className="hide-sm">{date(status.expires)}</td>
                           <td>
                             <Link to={`/name/${encodeURIComponent(label)}${status.state === 'Grace' || soon ? '?tab=ownership' : ''}`}>
                               {status.state === 'Grace' || soon ? 'Renew' : 'Manage'}
@@ -86,6 +89,7 @@ export function MyNames() {
             {modules.referrals && <Referrals />}
             <TestDollars />
           </div>
+          {modules.points && <PointsActivity />}
         </>
       )}
     </div>
@@ -141,27 +145,44 @@ function Referrals() {
   );
 }
 
-/** Testnet only: free test dollars for trying the stablecoin path. */
+/** Testnet only: where to get test tokens. */
 function TestDollars() {
   const coin = useStablecoin();
-  const tx = useTx();
-  if (!coin.isTest || !coin.address) return null;
+  if (!chain.testnet) return null;
   return (
     <section className="card card-pad stack" style={{ gap: 10 }}>
-      <div className="eyebrow" style={{ color: 'var(--faint)' }}>Test dollars</div>
-      <div className="figure">{token(coin.balance ?? 0n, coin.decimals, coin.symbol)}</div>
-      <p className="muted" style={{ margin: 0, fontSize: 15 }}>tUSD has no value. It exists on testnet so you can try paying with a stablecoin.</p>
-      <button
-        type="button"
-        className="btn btn-plain"
-        disabled={tx.state.busy}
-        onClick={() =>
-          tx.run([{ label: 'Minting', args: () => ({ address: coin.address!, abi: testUsdAbi, functionName: 'mint', args: [parseUnits('1000', coin.decimals)] }) }])
-        }
-      >
-        Get 1,000 tUSD
-      </button>
-      <TxNotice state={tx.state} success="Added to your wallet." />
+      <div className="eyebrow" style={{ color: 'var(--faint)' }}>Test tokens</div>
+      {coin.isTest && <div className="figure">{token(coin.balance ?? 0n, coin.decimals, coin.symbol)}</div>}
+      <p className="muted" style={{ margin: 0, fontSize: 15 }}>Test ETH for fees and test dollars for paying, all without value.</p>
+      <Link className="btn btn-plain" to="/faucet">Get test tokens</Link>
+    </section>
+  );
+}
+
+function PointsActivity() {
+  const { address } = useAccount();
+  const activity = usePointsActivity(address);
+  useEffect(() => {
+    if (activity.data?.length && window.location.hash === '#points')
+      document.getElementById('points')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [activity.data?.length]);
+  if (!activity.data?.length) return null;
+  return (
+    <section id="points" className="card card-pad stack" style={{ gap: 6 }}>
+      <h2>Points activity</h2>
+      <p className="muted" style={{ margin: 0, fontSize: 15 }}>Gift cards you redeemed, and the names they paid for.</p>
+      <ul className="rows" style={{ marginTop: 8 }}>
+        {activity.data.map((a) => (
+          <li key={a.tx + a.kind}>
+            <span className="grow">{a.what}</span>
+            <span className="faint small">{a.timestamp ? date(a.timestamp) : `block ${a.block}`}</span>
+            <span style={{ fontWeight: 600, color: a.kind === 'credit' ? 'var(--accent)' : undefined, minWidth: 90, textAlign: 'right' }}>
+              {a.kind === 'credit' ? '+' : '−'}{usd(a.amount)}
+            </span>
+            {explorerUrl && <a className="small" href={`${explorerUrl}/tx/${a.tx}`} target="_blank" rel="noreferrer">View</a>}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -27,13 +27,16 @@ permissions:
 
 env:
   RPC: https://rpc.testnet.chain.robinhood.com
-  PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The branch as it is now, not the commit that queued this run, so
+          # a queued run sees addresses an earlier run committed.
+          ref: ${{ github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -42,6 +45,8 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
 
       - name: Check the deployer key and its balance
+        env:
+          PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
         run: |
           if [ -z "$PRIVATE_KEY" ]; then
             echo "::error::Add the repository secret DEPLOYER_PRIVATE_KEY first."
@@ -58,25 +63,48 @@ jobs:
       - name: Deploy the contracts (first run only)
         if: hashFiles('deployments/46630.json') == ''
         env:
+          PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
           ENABLE_REFERRALS: 'true'
           ENABLE_GIFT_CARDS: 'true'
           TEST_STABLECOIN: 'true'
         run: forge script script/Deploy.s.sol --rpc-url "$RPC" --broadcast --slow
 
+      - name: Use the current test dollar (6-hour claim cooldown)
+        # A hiccup here must not stop names being reserved and sales opening.
+        continue-on-error: true
+        env:
+          PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+        run: forge script script/UpgradeTestStablecoin.s.sol --rpc-url "$RPC" --broadcast
+
       - name: Save the addresses to the repository
         run: |
+          # Never record an address that has no contract behind it (a send
+          # that failed after the script wrote the file).
+          for KEY in HoodRegistrarController Stablecoin; do
+            ADDR=$(jq -r ".$KEY // empty" deployments/46630.json)
+            if [ -n "$ADDR" ] && [ "$ADDR" != "0x0000000000000000000000000000000000000000" ] && [ "$(cast code "$ADDR" --rpc-url "$RPC")" = "0x" ]; then
+              echo "::warning::$KEY at $ADDR has no code. Keeping the previous address file."
+              git checkout -- deployments/46630.json 2>/dev/null || exit 1
+              break
+            fi
+          done
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add deployments/46630.json
           if ! git diff --cached --quiet; then
             git commit -m "Record Robinhood Chain testnet deployment"
+            git pull --rebase
             git push
           fi
 
       - name: Reserve names
+        env:
+          PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
         run: forge script script/ReserveNames.s.sol --rpc-url "$RPC" --broadcast --slow
 
       - name: Open registration
+        env:
+          PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
         run: |
           PAUSED=$(cast call $(jq -r .HoodRegistrarController deployments/46630.json) "paused()(bool)" --rpc-url "$RPC")
           if [ "$PAUSED" = "true" ]; then
@@ -86,7 +114,19 @@ jobs:
           fi
 
       - name: Set up gift cards
+        env:
+          PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
         run: forge script script/SetUpGiftCards.s.sol --rpc-url "$RPC" --broadcast
+
+      - name: Publish contract source on the explorer
+        continue-on-error: true
+        run: tools/verify-contracts.sh 46630 "$RPC" https://explorer.testnet.chain.robinhood.com/api/
+
+      - name: Publish function names for wallets
+        continue-on-error: true
+        run: |
+          forge build
+          tools/publish-signatures.sh
 
       - name: Summary
         run: |

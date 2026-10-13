@@ -20,6 +20,9 @@ export function Layout({ children }: { children: ReactNode }) {
           {modules.giftCards && (
             <NavLink to="/gift-cards" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>Gift cards</NavLink>
           )}
+          {chain.testnet && (
+            <NavLink to="/faucet" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>Test tokens</NavLink>
+          )}
           </div>
           <span className={'chip net' + (deployment ? '' : ' off')}><span className="led" />{chain.name}</span>
           <WalletButton />

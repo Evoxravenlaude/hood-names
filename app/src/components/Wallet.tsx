@@ -4,9 +4,10 @@ import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
 import { chain } from '../config';
 import { shortAddress } from '../lib/format';
 import { usePrimaryName } from '../lib/hooks';
+import { Avatar } from './Avatar';
 
 export function WalletButton() {
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected, chainId, status } = useAccount();
   const { connectors, connect, isPending, error } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
@@ -39,7 +40,8 @@ export function WalletButton() {
   if (isConnected && address) {
     return (
       <div className="wallet" ref={ref}>
-        <button type="button" className="btn btn-plain mono" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <button type="button" className="btn btn-plain mono" aria-expanded={open} onClick={() => setOpen(!open)} style={{ paddingLeft: primary.data ? 8 : undefined }}>
+          {primary.data && primary.data.split('.').length === 2 && <Avatar label={primary.data.split('.')[0]} size={28} />}
           {primary.data ?? shortAddress(address)}
         </button>
         {open && (
@@ -52,6 +54,15 @@ export function WalletButton() {
       </div>
     );
   }
+
+  // While the wallet from the last visit is being reconnected, don't offer
+  // to connect again: a second connection would race the first.
+  if (status === 'reconnecting')
+    return (
+      <button type="button" className="btn btn-plain" disabled>
+        Connecting…
+      </button>
+    );
 
   // EIP-6963 announces each installed wallet; the generic injected one is a fallback.
   const announced = connectors.filter((c) => c.id !== 'injected');
@@ -78,6 +89,9 @@ export function WalletButton() {
               {c.id === 'injected' ? 'Browser wallet' : c.name}
             </button>
           ))}
+          <span className="small faint" style={{ padding: '8px 12px', lineHeight: 1.45 }}>
+            Connecting only shares your wallet address with this site. Nothing is signed or sent until you confirm a step.
+          </span>
           {!choices.length && <span className="small faint" style={{ padding: 12 }}>No browser wallet found. Install one such as MetaMask or Rabby.</span>}
           {error && <span className="small" style={{ padding: 12, color: 'var(--warn)' }}>{error.message.split('\n')[0]}</span>}
         </div>

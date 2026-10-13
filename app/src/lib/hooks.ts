@@ -1,10 +1,13 @@
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { encodeEventTopics, erc20Abi, type Address, type Hex, zeroAddress } from 'viem';
+import { encodeEventTopics, erc20Abi, pad, type Address, type Hex, zeroAddress } from 'viem';
 import { useAccount, usePublicClient, useReadContract } from 'wagmi';
-import { controllerAbi, lensAbi, registryAbi, resolverAbi, reverseRegistrarAbi } from '../abi';
+import { baseRegistrarAbi, controllerAbi, lensAbi, pointsLedgerAbi, registryAbi, resolverAbi, reverseRegistrarAbi, testUsdAbi } from '../abi';
 import { deployment, modules } from '../config';
 import { decode, fetchLogs } from './logs';
-import { labelhash } from './names';
+import { fullName, labelhash, nodeOf, parseLabel, rememberAddressName } from './names';
+import { rememberToken } from './describe';
+import { toAddress } from './format';
 
 export const STATES = ['Available', 'Active', 'Grace', 'Reserved', 'Invalid', 'Similar'] as const;
 export type NameState = (typeof STATES)[number];
@@ -64,7 +67,11 @@ export interface Registered {
   labelhash: Hex;
   owner: Address;
   block: bigint;
+  tx: Hex;
 }
+
+/** Every registration seen, by transaction: lets activity say which name a payment was for. */
+const registrationsByTx = new Map<string, string>();
 
 /** Every label ever registered, from the controller's NameRegistered events. */
 export function useRegisteredLabels() {
@@ -81,7 +88,8 @@ export function useRegisteredLabels() {
         const ev = decode(controllerAbi, log);
         if (!ev || ev.eventName !== 'NameRegistered') continue;
         const a = ev.args as { label: string; labelhash: Hex; owner: Address };
-        map.set(a.labelhash, { label: a.label, labelhash: a.labelhash, owner: a.owner, block: log.blockNumber });
+        registrationsByTx.set(log.transactionHash.toLowerCase(), a.label);
+        map.set(a.labelhash, { label: a.label, labelhash: a.labelhash, owner: a.owner, block: log.blockNumber, tx: log.transactionHash });
       }
       return map;
     },
@@ -93,7 +101,7 @@ export interface OwnedName {
   status: NameStatus;
 }
 
-/** Names held by `account`, and expired ones it last registered. */
+/** Names held by `account`, including expired ones it held when they expired. */
 export function useOwnedNames(account: Address | undefined) {
   const client = usePublicClient();
   const registered = useRegisteredLabels();
@@ -111,11 +119,30 @@ export function useOwnedNames(account: Address | undefined) {
       );
       const me = account!.toLowerCase();
       const out: OwnedName[] = [];
+      const lapsed: { label: string; status: NameStatus; registrant: Address }[] = [];
       entries.forEach((r, i) => {
         const s = statuses[i];
         if (s.state === 'Active' && s.holder.toLowerCase() === me) out.push({ label: r.label, status: s });
-        else if (s.state === 'Grace' && r.owner.toLowerCase() === me) out.push({ label: r.label, status: s });
+        else if (s.state === 'Grace') lapsed.push({ label: r.label, status: s, registrant: r.owner });
       });
+      // An expired name's holder can't be read from the registrar any more,
+      // so it is taken from the last transfer of its token.
+      const transfer = encodeEventTopics({ abi: baseRegistrarAbi, eventName: 'Transfer' })[0];
+      const skip = new Set([deployment!.HoodRegistrarController, deployment!.NameWrapper, zeroAddress].map((a) => a.toLowerCase()));
+      await Promise.all(
+        lapsed.map(async (n) => {
+          let holder = n.registrant.toLowerCase();
+          try {
+            const logs = await fetchLogs(client!, deployment!.BaseRegistrar, [transfer, null, null, n.status.labelhash], BigInt(deployment!.deployBlock));
+            const last = logs[logs.length - 1];
+            const to = last ? ('0x' + last.topics[2].slice(26)).toLowerCase() : undefined;
+            if (to && !skip.has(to)) holder = to;
+          } catch {
+            // keep the registrant
+          }
+          if (holder === me) out.push({ label: n.label, status: n.status });
+        }),
+      );
       return out.sort((a, b) => Number(a.status.expires - b.status.expires));
     },
   });
@@ -166,9 +193,20 @@ export function useStablecoin() {
     args: address ? [address] : undefined,
     query: { enabled: enabled && !!address },
   });
+  const nextClaim = useReadContract({
+    address: token,
+    abi: testUsdAbi,
+    functionName: 'nextClaimAt',
+    args: address ? [address] : undefined,
+    query: { enabled: enabled && symbol.data === 'tUSD' && !!address },
+  });
+  useEffect(() => {
+    if (token && symbol.data && decimals.data !== undefined) rememberToken(token, symbol.data, decimals.data);
+  }, [token, symbol.data, decimals.data]);
   return {
     enabled,
     address: token,
+    nextClaimAt: nextClaim.data,
     symbol: symbol.data ?? 'USD',
     decimals: decimals.data ?? 6,
     balance: balance.data,
@@ -178,3 +216,113 @@ export function useStablecoin() {
 
 export const refHash = (label: string | undefined): Hex =>
   label ? labelhash(label) : (('0x' + '0'.repeat(64)) as Hex);
+
+export interface Recipient {
+  /** The address that would receive, once known. */
+  address?: Address;
+  /** Set when the input was a name. */
+  name?: string;
+  /** Why the input does not lead to an address. */
+  error?: string;
+  loading: boolean;
+}
+
+/** A recipient typed as an address or as a name; names resolve to the address they point to. */
+export function useRecipient(input: string): Recipient {
+  const text = input.trim();
+  const direct = toAddress(text);
+  const parsed = text && !direct ? parseLabel(text) : undefined;
+  const label = parsed?.ok ? parsed.label : undefined;
+  const status = useNameStatus(label);
+  if (!text) return { loading: false };
+  if (direct) return { address: direct, loading: false };
+  if (parsed && !parsed.ok) return { error: parsed.reason, loading: false };
+  if (!status.data) return { loading: true, name: label && fullName(label) };
+  const s = status.data;
+  const name = fullName(label!);
+  if (s.state !== 'Active') return { name, error: `${name} is not a registered name.`, loading: false };
+  if (s.resolvedAddress === zeroAddress)
+    return { name, error: `${name} does not point to a wallet${s.customResolver ? ' this page can read' : ''}.`, loading: false };
+  rememberAddressName(s.resolvedAddress, name);
+  return { address: s.resolvedAddress, name, loading: false };
+}
+
+/** The avatar record of a name, if it has one. */
+export function useAvatar(label: string | undefined | null) {
+  const status = useNameStatus(label ?? undefined);
+  const s = status.data;
+  const usable = !!s && s.state === 'Active' && s.resolverAllowed && s.resolver !== zeroAddress;
+  return useReadContract({
+    address: usable ? s!.resolver : undefined,
+    abi: resolverAbi,
+    functionName: 'text',
+    args: label && usable ? [nodeOf(label), 'avatar'] : undefined,
+    query: { enabled: usable && !!label },
+  });
+}
+
+export interface Activity {
+  kind: 'credit' | 'spend';
+  amount: bigint;
+  what: string;
+  tx: Hex;
+  block: bigint;
+  timestamp?: number;
+}
+
+/** Gift-card points coming in and going out for an account, newest first. */
+export function usePointsActivity(account: Address | undefined) {
+  const client = usePublicClient();
+  const registered = useRegisteredLabels();
+  return useQuery({
+    queryKey: ['points-activity', account, registered.data?.size],
+    enabled: !!account && modules.points && !!client && !!deployment,
+    queryFn: async () => {
+      const [credited, spent] = ['PointsCredited', 'PointsSpent'].map(
+        (eventName) => encodeEventTopics({ abi: pointsLedgerAbi, eventName: eventName as 'PointsCredited' })[0],
+      );
+      const who = pad(account!, { size: 32 }).toLowerCase() as Hex;
+      const from = BigInt(deployment!.deployBlock);
+      const [ins, outs, renewals] = await Promise.all([
+        fetchLogs(client!, deployment!.HoodPointsLedger, [credited, who], from),
+        fetchLogs(client!, deployment!.HoodPointsLedger, [spent, who], from),
+        fetchLogs(client!, deployment!.HoodRegistrarController, [encodeEventTopics({ abi: controllerAbi, eventName: 'NameRenewed' })[0]], from),
+      ]);
+      const byTx = new Map<string, string>();
+      for (const [tx, label] of registrationsByTx) byTx.set(tx, `Registered ${fullName(label)}`);
+      for (const l of renewals) {
+        const ev = decode(controllerAbi, l);
+        if (ev?.eventName === 'NameRenewed') byTx.set(l.transactionHash.toLowerCase(), `Renewed ${fullName((ev.args as { label: string }).label)}`);
+      }
+      const rows: Activity[] = [];
+      for (const l of ins) {
+        const ev = decode(pointsLedgerAbi, l);
+        if (ev) rows.push({ kind: 'credit', amount: (ev.args as { amount: bigint }).amount, what: 'Gift cards redeemed', tx: l.transactionHash, block: l.blockNumber, timestamp: l.timestamp });
+      }
+      for (const l of outs) {
+        const ev = decode(pointsLedgerAbi, l);
+        if (ev)
+          rows.push({
+            kind: 'spend',
+            amount: (ev.args as { amount: bigint }).amount,
+            what: byTx.get(l.transactionHash.toLowerCase()) ?? 'Spent on a name',
+            tx: l.transactionHash,
+            block: l.blockNumber,
+            timestamp: l.timestamp,
+          });
+      }
+      return rows.sort((a, b) => Number(b.block - a.block));
+    },
+  });
+}
+
+/** Seconds until a moment, ticking once a second. */
+export function useCountdown(until: bigint | number | undefined) {
+  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
+  useEffect(() => {
+    const t = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
+    return () => clearInterval(t);
+  }, []);
+  if (!until) return 0;
+  return Math.max(0, Number(until) - now);
+}

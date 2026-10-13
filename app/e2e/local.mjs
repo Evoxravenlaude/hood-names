@@ -24,7 +24,19 @@ const shot = (name) => page.screenshot({ path: path.join(SHOTS, `${String(++n).p
 const step = (msg) => console.log('•', msg);
 const expectText = async (text, timeout = 30_000) => page.getByText(text, { exact: false }).first().waitFor({ timeout });
 
+/** Approves the plain-language review that opens before the wallet. */
+async function approve(expectTitle, shotName) {
+  const dialog = page.getByRole('dialog');
+  await dialog.waitFor({ timeout: 30_000 });
+  if (expectTitle) await dialog.getByText(expectTitle, { exact: false }).first().waitFor({ timeout: 5_000 });
+  if (shotName) await shot(shotName);
+  await dialog.getByRole('button', { name: 'Continue in wallet' }).click();
+}
+
 async function connect() {
+  // Let a wallet from an earlier page reconnect first.
+  await page.getByRole('button', { name: 'Connecting…' }).first().waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => {});
+  await page.waitForTimeout(500);
   const btn = page.getByRole('button', { name: 'Connect wallet' }).first();
   if (await btn.isVisible().catch(() => false)) {
     await btn.click();
@@ -39,10 +51,12 @@ async function register(label, payWith) {
   await expectText('Summary');
   if (payWith) await page.getByRole('group', { name: 'Payment' }).getByRole('button', { name: new RegExp('^' + payWith) }).click();
   await page.getByRole('button', { name: /^Reserve / }).click();
+  await approve('Reserve your chosen name privately');
   await page.getByRole('button', { name: /Waiting/ }).waitFor({ timeout: 60_000 });
   step(`${label}: reserved, waiting a minute`);
   await page.getByRole('button', { name: 'Confirm and pay' }).waitFor({ timeout: 120_000 });
   await page.getByRole('button', { name: 'Confirm and pay' }).click();
+  await approve(`Register ${label}.hood for 1 year`, label === 'sage' ? 'review-register' : undefined);
   await expectText(`${label}.hood is yours`, 120_000);
   step(`${label}: registered`);
 }
@@ -81,14 +95,17 @@ try {
   await expectText('sage.hood, which is registered');
   await shot('search-lookalike');
 
-  step('Test dollars, then register with tUSD');
-  await page.goto(`${BASE}/names`);
+  step('Test tokens: claim tUSD, then the cooldown');
+  await page.goto(`${BASE}/faucet`);
   await connect();
+  await page.getByRole('button', { name: 'Claim 1,000 tUSD' }).click();
+  await approve('Claim 1,000 test dollars');
+  await expectText('Added to your wallet', 60_000);
+  await page.getByRole('button', { name: /Next claim in 5h|Next claim in 6h/ }).waitFor({ timeout: 30_000 });
+  await shot('faucet');
+  await page.goto(`${BASE}/names`);
   await expectText('sage.hood');
   await expectText('Primary');
-  await page.getByRole('button', { name: 'Get 1,000 tUSD' }).click();
-  await expectText('Added to your wallet', 60_000);
-  await shot('my-names');
   await register('привет', 'tUSD');
 
   step('Records');
@@ -97,7 +114,11 @@ try {
   await page.waitForFunction(() => !document.querySelector('#r-addr')?.disabled);
   await page.getByLabel('X', { exact: true }).fill('@sage');
   await page.getByLabel('Website').fill('https://example.com');
+  await page.locator('input[type=file]').setInputFiles(new URL('./avatar.png', import.meta.url).pathname);
+  await expectText('Picture ready');
   await page.getByRole('button', { name: 'Save changes' }).click();
+  await page.getByRole('dialog').getByText('Set the avatar of sage.hood to an uploaded image').waitFor();
+  await approve('Save 3 record changes', 'review-records');
   await expectText('Saved.', 60_000);
   await page.reload();
   await page.getByLabel('X', { exact: true }).and(page.locator('[value="@sage"]')).waitFor({ timeout: 30_000 });
@@ -107,6 +128,7 @@ try {
   await page.getByRole('tab', { name: 'Subnames' }).click();
   await page.getByLabel('Name', { exact: true }).fill('pay');
   await page.getByRole('button', { name: 'Create subname' }).click();
+  await approve('Create the subname pay.sage.hood');
   await expectText('Subname created and switched on', 90_000);
   await expectText('pay.sage.hood', 30_000);
   await expectText('Working');
@@ -121,21 +143,39 @@ try {
   await expectText('is not a registered name');
   await expectText('looks like sage.hood');
 
-  step('Gift cards');
+  step('Gift cards: buy for a name, send one on, redeem, spend');
   await page.goto(`${BASE}/gift-cards`);
   await expectText('Buy');
   await page.getByRole('group', { name: 'Payment' }).getByRole('button', { name: 'tUSD' }).click();
+  await page.getByLabel('How many').first().fill('3');
+  await page.getByLabel('For').fill('sage.hood');
+  await expectText('sage.hood → ' + ACCOUNT);
   await page.getByRole('button', { name: /^Buy gift card/ }).click();
+  await approve(); // the tUSD allowance
   await expectText('Bought.', 90_000);
-  await page.getByRole('button', { name: 'Redeem all' }).click();
-  await expectText('Added as points', 90_000);
+  await expectText('3 × $5.00', 30_000);
+  await page.getByRole('button', { name: 'Send' }).first().click();
+  await page.getByLabel('To').fill('0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC');
+  await page.getByRole('button', { name: 'Send', exact: true }).last().click();
+  await approve('Send 1 × $5.00 gift card to 0x3C44');
+  await expectText('2 × $5.00', 60_000);
+  await page.getByRole('button', { name: 'Redeem all for points' }).click();
+  await approve('Turn 2 × $5.00 gift cards into points');
+  await expectText('$10.00', 60_000);
   await shot('gift-cards');
 
   step('Renew');
   await page.goto(`${BASE}/name/sage?tab=ownership`);
+  await page.getByRole('group', { name: 'Payment' }).getByRole('button', { name: 'Points' }).click();
   await page.getByRole('button', { name: 'Renew sage.hood' }).click();
+  await approve('Renew sage.hood for 1 year');
   await expectText('Renewed.', 90_000);
   await shot('ownership');
+  await page.goto(`${BASE}/names#points`);
+  await expectText('Points activity', 60_000);
+  await expectText('Renewed sage.hood');
+  await expectText('Gift cards redeemed');
+  await shot('points-activity');
 
   step('Phone width');
   await page.setViewportSize({ width: 390, height: 844 });
@@ -151,6 +191,7 @@ try {
 } catch (e) {
   await shot('failure');
   console.error('FAILED:', e.message);
+  console.error('Page status lines:', await page.locator('[role=status], [role=alert]').allInnerTexts().catch(() => []));
   console.error('Console errors:\n' + errors.slice(-10).join('\n'));
   process.exitCode = 1;
 } finally {

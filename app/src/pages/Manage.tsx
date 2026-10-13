@@ -4,14 +4,17 @@ import { concat, encodeEventTopics, encodeFunctionData, erc20Abi, hexToString, k
 import { useAccount, useConfig, usePublicClient, useReadContract } from 'wagmi';
 import { readContract } from 'wagmi/actions';
 import { useQuery } from '@tanstack/react-query';
-import { baseRegistrarAbi, controllerAbi, lensAbi, nameWrapperAbi, policyAbi, registryAbi, resolverAbi, reverseRegistrarAbi } from '../abi';
+import { baseRegistrarAbi, controllerAbi, nameWrapperAbi, policyAbi, registryAbi, resolverAbi, reverseRegistrarAbi } from '../abi';
 import { deployment, GRACE_PERIOD, modules, parentName, YEAR } from '../config';
 import { Status, TxNotice } from '../components/Bits';
 import { ConnectPrompt } from '../components/Wallet';
-import { ago, date, eth, isAddress, shortAddress, token } from '../lib/format';
-import { STATES, useNameStatus, usePrimaryName, useStablecoin, type NameStatus } from '../lib/hooks';
+import { ago, date, eth, isAddress, shortAddress, toAddress, token } from '../lib/format';
+import { useNameStatus, usePrimaryName, useRecipient, useStablecoin, type NameStatus } from '../lib/hooks';
+import { Avatar } from '../components/Avatar';
+import { RecipientField } from './GiftCards';
+import { avatarSrc, toAvatarDataUrl } from '../lib/image';
 import { decode, fetchLogs } from '../lib/logs';
-import { fullName, labelhash, parseLabel, subnodeOf } from '../lib/names';
+import { fullName, labelhash, nodeOf, parseLabel, subnodeOf } from '../lib/names';
 import { useTx } from '../lib/tx';
 
 type Tab = 'records' | 'subnames' | 'ownership';
@@ -26,6 +29,8 @@ export function Manage() {
   const { address } = useAccount();
   const primary = usePrimaryName(address);
 
+  // Teaches the page this name, so transactions about it read as its name.
+  if (label) nodeOf(label);
   if (!label) return <div className="page narrow"><Link to="/" className="back">← Search</Link><p className="error-text">{!parsed.ok && parsed.reason}</p></div>;
   const s = status.data;
   const name = fullName(label);
@@ -50,9 +55,7 @@ export function Manage() {
     <div className="page">
       <Link to="/names" className="back">← My names</Link>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px 24px', margin: '16px 0 28px' }}>
-        <div aria-hidden="true" style={{ width: 72, height: 72, borderRadius: 18, background: 'var(--ink)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '500 30px var(--mono)' }}>
-          {[...label][0]}
-        </div>
+        <Avatar label={label} size={72} remote={isHolder} />
         <div style={{ marginRight: 'auto', minWidth: 0 }}>
           <h1 className="name-title" style={{ fontSize: 44 }}>{label}<span className="dim">.{parentName}</span></h1>
           <div className="muted" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', fontSize: 15, marginTop: 6 }}>
@@ -130,8 +133,9 @@ function Records({ label, s, canEdit }: { label: string; s: NameStatus; canEdit:
     if (!current.data) return [] as Hex[];
     const out: Hex[] = [];
     const before = current.data.addr === zeroAddress ? '' : current.data.addr;
-    if (addr.trim() !== before && (addr.trim() === '' || isAddress(addr)))
-      out.push(encodeFunctionData({ abi: resolverAbi, functionName: 'setAddr', args: [s.node, (addr.trim() || zeroAddress) as Address] }));
+    const typed = addr.trim() === '' ? zeroAddress : toAddress(addr);
+    if (typed && typed.toLowerCase() !== (before || zeroAddress).toLowerCase())
+      out.push(encodeFunctionData({ abi: resolverAbi, functionName: 'setAddr', args: [s.node, typed] }));
     TEXT_KEYS.forEach(([k], i) => {
       if (texts[i] !== current.data!.texts[i])
         out.push(encodeFunctionData({ abi: resolverAbi, functionName: 'setText', args: [s.node, k, texts[i]] }));
@@ -187,7 +191,19 @@ function Records({ label, s, canEdit }: { label: string; s: NameStatus; canEdit:
           {addrInvalid && <p className="error-text">That is not a wallet address.</p>}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-          {TEXT_KEYS.map(([k, title, ph], i) => (
+          {TEXT_KEYS.map(([k, title, ph], i) => k === 'avatar' ? (
+            <AvatarField
+              key={k}
+              label={label}
+              value={texts[i]}
+              saved={current.data?.texts[i] ?? ''}
+              disabled={locked}
+              onChange={(v) => {
+                setEdited(true);
+                setTexts((prev) => prev.map((t, j) => (j === i ? v : t)));
+              }}
+            />
+          ) : (
             <div className="field" key={k}>
               <label htmlFor={`r-${k}`}>{title}</label>
               <input
@@ -198,7 +214,8 @@ function Records({ label, s, canEdit }: { label: string; s: NameStatus; canEdit:
                 disabled={locked}
                 onChange={(e) => {
                   setEdited(true);
-                  setTexts(texts.map((t, j) => (j === i ? e.target.value : t)));
+                  const v = e.target.value;
+                  setTexts((prev) => prev.map((t, j) => (j === i ? v : t)));
                 }}
               />
             </div>
@@ -346,8 +363,8 @@ function Subnames({ label, s, canEdit }: { label: string; s: NameStatus; canEdit
   });
 
   const parsedNew = parseLabel(newLabel);
-  const ownerAddr = (newOwner.trim() || address) as Address | undefined;
-  const ownerOk = !!ownerAddr && isAddress(ownerAddr);
+  const ownerAddr = newOwner.trim() ? toAddress(newOwner) : address;
+  const ownerOk = !!ownerAddr;
 
   const create = async () => {
     if (!parsedNew.ok || !ownerOk || !deployment || !address) return;
@@ -482,19 +499,9 @@ function Ownership({ label, s, isHolder }: { label: string; s: NameStatus; isHol
   });
 
   // Recipient: an address, or a name that resolves to one.
-  const toParsed = to.trim() && !isAddress(to) ? parseLabel(to) : undefined;
-  const toStatus = useReadContract({
-    address: deployment?.HoodNameLens,
-    abi: lensAbi,
-    functionName: 'status',
-    args: toParsed?.ok ? [toParsed.label] : undefined,
-    query: { enabled: !!toParsed?.ok },
-  });
-  const recipient: Address | undefined = isAddress(to)
-    ? (to.trim() as Address)
-    : toStatus.data && STATES[toStatus.data.state] === 'Active' && toStatus.data.resolvedAddress !== zeroAddress
-      ? toStatus.data.resolvedAddress
-      : undefined;
+  const target = useRecipient(to);
+  const recipient = target.address;
+  const self = !!recipient && !!address && recipient.toLowerCase() === address.toLowerCase();
 
   const renew = async () => {
     if (!deployment || !address) return;
@@ -573,20 +580,16 @@ function Ownership({ label, s, isHolder }: { label: string; s: NameStatus; isHol
           <h2>Send this name</h2>
           {isHolder ? (
             <>
-              <div className="field">
-                <label htmlFor="to">To</label>
-                <input id="to" className="input mono" value={to} onChange={(e) => { setTo(e.target.value); setSure(false); }} placeholder={`0x… or a .${parentName} name`} autoCapitalize="off" spellCheck={false} />
-                {to.trim() && !recipient && <p className="error-text">{toParsed && !toParsed.ok ? toParsed.reason : 'That does not lead to a wallet.'}</p>}
-                {recipient && !isAddress(to) && <p className="hint mono">{recipient}</p>}
-              </div>
+              <RecipientField id="to" label="To" placeholder={`name.${parentName} or 0x…`} value={to} onChange={(v) => { setTo(v); setSure(false); }} recipient={target} />
+              {self && <p className="error-text">That is your own wallet.</p>}
               <p className="muted" style={{ margin: 0, fontSize: 15, lineHeight: 1.55 }}>
                 The recipient controls it straight away and starts with no records. Your subnames stop working until they switch them on.
               </p>
               <label className="check">
-                <input type="checkbox" checked={sure} onChange={() => setSure(!sure)} disabled={!recipient} />
+                <input type="checkbox" checked={sure} onChange={() => setSure(!sure)} disabled={!recipient || self} />
                 <span>I want to give {name} away. This cannot be undone.</span>
               </label>
-              <button type="button" className="btn btn-danger" style={{ alignSelf: 'flex-start' }} disabled={!recipient || !sure || send.state.busy} onClick={transfer}>
+              <button type="button" className="btn btn-danger" style={{ alignSelf: 'flex-start' }} disabled={!recipient || self || !sure || send.state.busy} onClick={transfer}>
                 Send {name}
               </button>
               <TxNotice state={send.state} success="Sent." />
@@ -605,6 +608,67 @@ function Ownership({ label, s, isHolder }: { label: string; s: NameStatus; isHol
         <div className="line"><span className="k">Grace period ends</span><span>{date(s.expires + GRACE_PERIOD)}</span></div>
         {!grace && <div className="line"><span className="k">Resolver</span><span>{s.resolver === zeroAddress ? 'None' : s.customResolver ? 'Custom (approved)' : s.resolverAllowed ? 'Standard (trusted)' : 'Not approved'}</span></div>}
       </section>
+    </div>
+  );
+}
+
+/** The avatar record: upload a picture (stored on-chain, a few KB) or paste a link. */
+function AvatarField({ label, value, saved, disabled, onChange }: { label: string; value: string; saved: string; disabled: boolean; onChange: (v: string) => void }) {
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const isUpload = value.startsWith('data:');
+  const preview = avatarSrc(value);
+  return (
+    <div className="field" style={{ gridColumn: '1 / -1' }}>
+      <span className="label">Avatar</span>
+      <div className="avatar-edit">
+        <Avatar label={label} record={value} size={64} />
+        <label className={'btn btn-plain' + (disabled || busy ? ' disabled' : '')} style={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1 }}>
+          {busy ? 'Preparing…' : 'Upload a picture'}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+            className="sr-only"
+            disabled={disabled || busy}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (!file) return;
+              setError('');
+              setBusy(true);
+              try {
+                onChange(await toAvatarDataUrl(file));
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'That picture could not be used.');
+              } finally {
+                setBusy(false);
+              }
+            }}
+          />
+        </label>
+        {value && !disabled && (
+          <button type="button" className="linkish" onClick={() => onChange('')}>Remove</button>
+        )}
+      </div>
+      {isUpload ? (
+        <p className="hint">
+          {value === saved
+            ? `Stored on-chain with your records (${Math.max(1, Math.round(value.length / 1024))} KB).`
+            : `Picture ready (${Math.max(1, Math.round(value.length / 1024))} KB). It is stored on-chain with your records when you save.`}
+        </p>
+      ) : (
+        <input
+          id="r-avatar"
+          aria-label="Avatar link"
+          className="input"
+          value={value}
+          placeholder="Or paste an image link (https:// or ipfs://)"
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      )}
+      {value && !preview && <p className="error-text">That link can't be shown as a picture. Use https:// or ipfs://.</p>}
+      {error && <p className="error-text">{error}</p>}
     </div>
   );
 }
