@@ -70,6 +70,18 @@ abstract contract ReservedLists is Script {
         for (uint256 i = 0; i < n; i++) out[i] = kept[i];
     }
 
+    function _notReserved(
+        HoodNameGuard guard,
+        string[] memory labels
+    ) internal view returns (string[] memory out) {
+        string[] memory kept = new string[](labels.length);
+        uint256 n;
+        for (uint256 i = 0; i < labels.length; i++)
+            if (!guard.labelReserved(keccak256(bytes(labels[i])))) kept[n++] = labels[i];
+        out = new string[](n);
+        for (uint256 i = 0; i < n; i++) out[i] = kept[i];
+    }
+
     function _slice(
         string[] memory all,
         uint256 from,
@@ -113,17 +125,22 @@ contract ReserveNames is ReservedLists {
         string[6] memory files = _files();
         uint256 total;
         uint256 skipped;
+        uint256 sent;
         vm.startBroadcast(key);
         for (uint256 i = 0; i < files.length; i++) {
             string[] memory all = _readLabels(files[i]);
             string[] memory labels = _registrable(guard, all);
             skipped += all.length - labels.length;
+            total += labels.length;
+            // Only what is not reserved yet, so a re-run sends nothing.
+            labels = _notReserved(guard, labels);
+            sent += labels.length;
             for (uint256 j = 0; j < labels.length; j += BATCH)
                 guard.setReservedLabels(_slice(labels, j, BATCH), true);
-            total += labels.length;
         }
         vm.stopBroadcast();
         console2.log("Reserved labels:", total);
+        console2.log("Newly reserved in this run:", sent);
         console2.log("Skipped (under 3 characters, cannot be registered):", skipped);
     }
 }

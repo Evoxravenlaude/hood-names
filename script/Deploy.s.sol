@@ -111,6 +111,11 @@ contract Deploy is Script, HoodDeployer {
             "deployments file exists; set OVERWRITE=true to replace it"
         );
 
+        // The chain's own block height, taken before anything is sent, so
+        // event scans can start here. Not block.number: on Arbitrum chains
+        // such as Robinhood Chain that returns the Ethereum block number.
+        uint256 deployBlock = _chainHead();
+
         vm.startBroadcast(key);
         if (
             c.stablecoin == address(0) &&
@@ -125,7 +130,7 @@ contract Deploy is Script, HoodDeployer {
         // must use this registry explicitly and never fall back to another
         // service that happens to use the same TLD.
         vm.serializeUint(o, "chainId", block.chainid);
-        vm.serializeUint(o, "deployBlock", block.number);
+        vm.serializeUint(o, "deployBlock", deployBlock);
         vm.serializeString(o, "parentName", c.parentName);
         vm.serializeBytes32(o, "parentNode", d.parentNode);
         vm.serializeAddress(o, "HoodNameLens", address(d.lens));
@@ -166,6 +171,15 @@ contract Deploy is Script, HoodDeployer {
             console2.log("Simulation only: no address file written.");
         }
         console2.log("Registration is PAUSED. Run ReserveNames, check it, then OpenRegistration.");
+    }
+
+    /// @dev eth_blockNumber from the RPC, falling back to block.number.
+    function _chainHead() private returns (uint256 n) {
+        try vm.rpc("eth_blockNumber", "[]") returns (bytes memory raw) {
+            for (uint256 i = 0; i < raw.length; i++) n = (n << 8) | uint8(raw[i]);
+        } catch {
+            n = block.number;
+        }
     }
 
     function _contains(
