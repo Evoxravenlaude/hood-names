@@ -1,0 +1,14 @@
+node_modules/
+out/
+cache/
+broadcast/
+deployments/*.json
+!deployments/46630.json
+!deployments/4663.json
+.env
+.env.*
+!.env.example
+app/node_modules/
+app/dist/
+app/test-results/
+app/e2e/screens/

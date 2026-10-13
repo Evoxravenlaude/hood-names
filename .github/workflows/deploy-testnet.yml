@@ -1,0 +1,99 @@
+name: Deploy to Robinhood Chain testnet
+
+# Deploys the contracts once, reserves the names, opens registration, and
+# commits the addresses to deployments/46630.json, which the site reads.
+# Every step is safe to run again: a finished deployment is not repeated.
+#
+# Needs the repository secret DEPLOYER_PRIVATE_KEY: a testnet-only key with
+# testnet ETH (https://www.alchemy.com/faucets/robinhood-testnet).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'contracts/**'
+      - 'script/**'
+      - 'reserved/**'
+      - 'nametables/**'
+      - '.github/workflows/deploy-testnet.yml'
+
+concurrency:
+  group: deploy-testnet
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  RPC: https://rpc.testnet.chain.robinhood.com
+  PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Check the deployer key and its balance
+        run: |
+          if [ -z "$PRIVATE_KEY" ]; then
+            echo "::error::Add the repository secret DEPLOYER_PRIVATE_KEY first."
+            exit 1
+          fi
+          ADDR=$(cast wallet address --private-key "$PRIVATE_KEY")
+          BAL=$(cast balance "$ADDR" --rpc-url "$RPC")
+          echo "Deployer $ADDR has $(cast from-wei "$BAL") ETH"
+          if [ "$BAL" = "0" ]; then
+            echo "::error::$ADDR has no testnet ETH. Fund it from https://www.alchemy.com/faucets/robinhood-testnet and run this workflow again."
+            exit 1
+          fi
+
+      - name: Deploy the contracts (first run only)
+        if: hashFiles('deployments/46630.json') == ''
+        env:
+          ENABLE_REFERRALS: 'true'
+          ENABLE_GIFT_CARDS: 'true'
+          TEST_STABLECOIN: 'true'
+        run: forge script script/Deploy.s.sol --rpc-url "$RPC" --broadcast --slow
+
+      - name: Save the addresses to the repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deployments/46630.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Robinhood Chain testnet deployment"
+            git push
+          fi
+
+      - name: Reserve names
+        run: forge script script/ReserveNames.s.sol --rpc-url "$RPC" --broadcast --slow
+
+      - name: Open registration
+        run: |
+          PAUSED=$(cast call $(jq -r .HoodRegistrarController deployments/46630.json) "paused()(bool)" --rpc-url "$RPC")
+          if [ "$PAUSED" = "true" ]; then
+            forge script script/OpenRegistration.s.sol --rpc-url "$RPC" --broadcast
+          else
+            echo "Registration is already open."
+          fi
+
+      - name: Set up gift cards
+        run: forge script script/SetUpGiftCards.s.sol --rpc-url "$RPC" --broadcast
+
+      - name: Summary
+        run: |
+          {
+            echo "## Robinhood Chain testnet"
+            echo
+            echo "| Contract | Address |"
+            echo "| --- | --- |"
+            jq -r 'to_entries[] | select(.value|type=="string") | select(.value|startswith("0x")) | select(.value|length==42) | "| \(.key) | [\(.value)](https://explorer.testnet.chain.robinhood.com/address/\(.value)) |"' deployments/46630.json
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,112 @@
+{
+ "source": "Unicode confusables.txt dated 2026-08-06,; ENSIP-15 via @adraffy/ens-normalize 1.11.1; generated with Node v22.22.0, Unicode 16.0",
+ "patterns": [
+  "0xe184892de18480",
+  "0xe184892de18486",
+  "0xe18489e184892d",
+  "0xe1b48ecca6cc86",
+  "0xe18486e185a1",
+  "0xe1848ce185a9",
+  "0x726ecca6",
+  "0xd0b6cca9",
+  "0xd0bbcca6",
+  "0x33cca6",
+  "0x62ccb5",
+  "0x63cca6",
+  "0x65cca8",
+  "0x68cca6",
+  "0x68cca9",
+  "0x68ccb5",
+  "0x6bcca9",
+  "0x6bccb5",
+  "0x6fccb5",
+  "0x72ccb5",
+  "0x74cca9",
+  "0x75cca9",
+  "0x79ccb5",
+  "0xc68569",
+  "0xcb8962",
+  "0x7227",
+  "0x726e",
+  "0x7676"
+ ],
+ "recordBytes": 13,
+ "pages": [
+  {
+   "file": "nametables/page-0.hex",
+   "records": 541,
+   "first": 45,
+   "last": 40899
+  }
+ ],
+ "pageFiles": [
+  "nametables/page-0.hex"
+ ],
+ "rangeStarts": [
+  19968,
+  44032
+ ],
+ "rangeEnds": [
+  40959,
+  55203
+ ],
+ "rangeScripts": [
+  4,
+  7
+ ],
+ "ranges": [
+  {
+   "start": 19968,
+   "end": 40959,
+   "script": 4
+  },
+  {
+   "start": 44032,
+   "end": 55203,
+   "script": 7
+  }
+ ],
+ "groups": [
+  2,
+  4,
+  8,
+  112,
+  144
+ ],
+ "latinBit": 2,
+ "scripts": [
+  {
+   "id": 1,
+   "name": "Latin"
+  },
+  {
+   "id": 2,
+   "name": "Cyrillic"
+  },
+  {
+   "id": 3,
+   "name": "Greek"
+  },
+  {
+   "id": 4,
+   "name": "Han"
+  },
+  {
+   "id": 5,
+   "name": "Hiragana"
+  },
+  {
+   "id": 6,
+   "name": "Katakana"
+  },
+  {
+   "id": 7,
+   "name": "Hangul"
+  }
+ ],
+ "counts": {
+  "entries": 541,
+  "lookalikeClasses": 74,
+  "dropped": 301
+ }
+}

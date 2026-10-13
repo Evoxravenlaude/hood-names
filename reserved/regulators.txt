@@ -1,0 +1,21 @@
+# Regulators, agencies and market venues
+sec
+finra
+cftc
+fca
+esma
+mas
+irs
+ofac
+fincen
+ustreasury
+fed
+federalreserve
+doj
+fbi
+sipc
+fdic
+nyse
+nasdaq
+cboe
+dtcc

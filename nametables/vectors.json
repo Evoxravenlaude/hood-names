@@ -1,0 +1,837 @@
+{
+ "vectors": [
+  {
+   "label": "0x616c696365",
+   "length": 5,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0x616c696365"
+  },
+  {
+   "label": "0x626f62",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x626f62"
+  },
+  {
+   "label": "0x616263",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x616263"
+  },
+  {
+   "label": "0x616c6963652d32",
+   "length": 7,
+   "ok": true,
+   "priceLength": 7,
+   "skeleton": "0x616c6963652d32"
+  },
+  {
+   "label": "0x37656c6576656e",
+   "length": 7,
+   "ok": true,
+   "priceLength": 7,
+   "skeleton": "0x37656c6576656e"
+  },
+  {
+   "label": "0x612d622d63",
+   "length": 5,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0x612d622d63"
+  },
+  {
+   "label": "0x6162",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x2d616c696365",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x616c6963652d",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x61622d2d6364",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x3078616263",
+   "length": 5,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0x6f78616263"
+  },
+  {
+   "label": "0x616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161",
+   "length": 63,
+   "ok": true,
+   "priceLength": 63,
+   "skeleton": "0x616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161"
+  },
+  {
+   "label": "0x61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x416c696365",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x616c20696365",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x616c2e696365",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x616c5f696365",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x616c69636521",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x636166c3a9",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x63616665"
+  },
+  {
+   "label": "0x63616665",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x63616665"
+  },
+  {
+   "label": "0x7365c3b16f72",
+   "length": 5,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0x73656e6f72"
+  },
+  {
+   "label": "0x73656e6f72",
+   "length": 5,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0x73656e6f72"
+  },
+  {
+   "label": "0xc3bc626572",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x75626572"
+  },
+  {
+   "label": "0x75626572",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x75626572"
+  },
+  {
+   "label": "0x7a6fc3ab",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x7a6f65"
+  },
+  {
+   "label": "0x7a6f65",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x7a6f65"
+  },
+  {
+   "label": "0xc3a56e67737472c3b66d",
+   "length": 8,
+   "ok": true,
+   "priceLength": 8,
+   "skeleton": "0x616e677374726f726e"
+  },
+  {
+   "label": "0x7669e1bb8774",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x673030676c65",
+   "length": 6,
+   "ok": true,
+   "priceLength": 6,
+   "skeleton": "0x676f6f676c65"
+  },
+  {
+   "label": "0x676f6f676c65",
+   "length": 6,
+   "ok": true,
+   "priceLength": 6,
+   "skeleton": "0x676f6f676c65"
+  },
+  {
+   "label": "0x706179706131",
+   "length": 6,
+   "ok": true,
+   "priceLength": 6,
+   "skeleton": "0x70617970616c"
+  },
+  {
+   "label": "0x70617970616c",
+   "length": 6,
+   "ok": true,
+   "priceLength": 6,
+   "skeleton": "0x70617970616c"
+  },
+  {
+   "label": "0x6d6f6465726e",
+   "length": 6,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0x726e6f6465726e"
+  },
+  {
+   "label": "0x6d6f64656d",
+   "length": 5,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0x726e6f6465726e"
+  },
+  {
+   "label": "0x7676617665",
+   "length": 5,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x7676617665"
+  },
+  {
+   "label": "0x77617665",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x7676617665"
+  },
+  {
+   "label": "0xd0bfd180d0b8d0b2d0b5d182",
+   "length": 6,
+   "ok": true,
+   "priceLength": 6,
+   "skeleton": "0xcf8070e1b48e626574"
+  },
+  {
+   "label": "0xd0bcd0bed181d0bad0b2d0b0",
+   "length": 6,
+   "ok": true,
+   "priceLength": 6,
+   "skeleton": "0x726e6f636b6261"
+  },
+  {
+   "label": "0xceb1ceb8ceaecebdceb1",
+   "length": 5,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0x616fccb56e7661"
+  },
+  {
+   "label": "0xceb5cebbcebbceacceb4ceb1",
+   "length": 6,
+   "ok": true,
+   "priceLength": 6,
+   "skeleton": "0x65cebbcebb61e1ba9f61"
+  },
+  {
+   "label": "0xe69db1e4baace983bd",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe69db1e4baace983bd"
+  },
+  {
+   "label": "0xe38193e38293e381abe381a1e381af",
+   "length": 5,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0xe38193e38293e381abe381a1e381af"
+  },
+  {
+   "label": "0xe382abe382bfe382abe3838a",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0xe58a9be5a495e58a9be3838a"
+  },
+  {
+   "label": "0xe69db1e4baace382bfe383afe383bc",
+   "length": 5,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0xe69db1e4baace5a495e383af2d"
+  },
+  {
+   "label": "0xec849cec9ab8ed8ab9ebb384ec8b9c",
+   "length": 5,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0xec849cec9ab8ed8ab9ebb384ec8b9c"
+  },
+  {
+   "label": "0xed959ceab5adec96b4",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xed959ceab5adec96b4"
+  },
+  {
+   "label": "0xd180d0bed0b5",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0xd0b0d180d180d38fd0b5",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0xcf81cebfceb5",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x706f65"
+  },
+  {
+   "label": "0xd181d0bed181d0be",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0xd185d0bed185d0be",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x616c69d18165",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0xceb16c696365",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x746f6b796fe69db1e4baac",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0xd0bfd180d0b8d0b2d0b5d182e4b896e7958c",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x616c69e2808b6365",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x616c69e2808d6365",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x616c696365efbbbf",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0xefbd81efbd8cefbd89efbd83efbd85",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x65cc81636f6c65",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0xc3a9636f6c65",
+   "length": 5,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0x65636f6c65"
+  },
+  {
+   "label": "0x616c696365f09f9880",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0xd985d8b1d8add8a8d8a7",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0xe0a4a8e0a4aee0a4b8e0a58de0a4a4e0a587",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x726f62696e686f6f64",
+   "length": 9,
+   "ok": true,
+   "priceLength": 9,
+   "skeleton": "0x726f62696e686f6f64"
+  },
+  {
+   "label": "0x723062696e686f6f64",
+   "length": 9,
+   "ok": true,
+   "priceLength": 9,
+   "skeleton": "0x726f62696e686f6f64"
+  },
+  {
+   "label": "0x726f62696e68303064",
+   "length": 9,
+   "ok": true,
+   "priceLength": 9,
+   "skeleton": "0x726f62696e686f6f64"
+  },
+  {
+   "label": "0x72d0be62696e686f6f64",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x726f62c3ad6e686f6f64",
+   "length": 9,
+   "ok": true,
+   "priceLength": 9,
+   "skeleton": "0x726f62696e686f6f64"
+  },
+  {
+   "label": "0x6e766461",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x6e766461"
+  },
+  {
+   "label": "0x6e7664d0b0",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x737570706f7274",
+   "length": 7,
+   "ok": true,
+   "priceLength": 7,
+   "skeleton": "0x737570706f7274"
+  },
+  {
+   "label": "0x73757070307274",
+   "length": 7,
+   "ok": true,
+   "priceLength": 7,
+   "skeleton": "0x737570706f7274"
+  },
+  {
+   "label": "0xe382abe383ade382a8",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe58a9be58fa3e5b7a5"
+  },
+  {
+   "label": "0xe58a9be58fa3e5b7a5",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe58a9be58fa3e5b7a5"
+  },
+  {
+   "label": "0xe3838be3838fe38388",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe4ba8ce585abe58d9c"
+  },
+  {
+   "label": "0xe382abe383bce38389",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe58a9b2de38389"
+  },
+  {
+   "label": "0xe382ab2de38389",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe58a9b2de38389"
+  },
+  {
+   "label": "0xe3828ae38293e38194",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe383aae38293e38194"
+  },
+  {
+   "label": "0xe383aae38293e38194",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe383aae38293e38194"
+  },
+  {
+   "label": "0xe3818de38287e38186",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe3818de38288e38186"
+  },
+  {
+   "label": "0xe3818de38288e38186",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe3818de38288e38186"
+  },
+  {
+   "label": "0xe697a5e69cace8aa9e",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe697a5e69cace8aa9e"
+  },
+  {
+   "label": "0xe69bb0e69cace8aa9e",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe697a5e69cace8aa9e"
+  },
+  {
+   "label": "0xe383a0e383a9e794b0",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe58eb6e383a9e794b0"
+  },
+  {
+   "label": "0xe58eb6e383a9e794b0",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0xe58eb6e383a9e794b0"
+  },
+  {
+   "label": "0x72c3b862696e686f6f64",
+   "length": 9,
+   "ok": true,
+   "priceLength": 9,
+   "skeleton": "0x726f62696e686f6f64"
+  },
+  {
+   "label": "0x726f62696e68c3b8c3b864",
+   "length": 9,
+   "ok": true,
+   "priceLength": 9,
+   "skeleton": "0x726f62696e686f6f64"
+  },
+  {
+   "label": "0x7761c582c5826574",
+   "length": 6,
+   "ok": true,
+   "priceLength": 6,
+   "skeleton": "0x7676616c6c6574"
+  },
+  {
+   "label": "0x77616c6c6574",
+   "length": 6,
+   "ok": true,
+   "priceLength": 6,
+   "skeleton": "0x7676616c6c6574"
+  },
+  {
+   "label": "0x7061797061c582",
+   "length": 6,
+   "ok": true,
+   "priceLength": 6,
+   "skeleton": "0x70617970616c"
+  },
+  {
+   "label": "0x73747261c39f65",
+   "length": 6,
+   "ok": true,
+   "priceLength": 6,
+   "skeleton": "0x73747261737365"
+  },
+  {
+   "label": "0x73747261737365",
+   "length": 7,
+   "ok": true,
+   "priceLength": 7,
+   "skeleton": "0x73747261737365"
+  },
+  {
+   "label": "0xcebfceb4cebfcf82",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x6fe1ba9f6f6f"
+  },
+  {
+   "label": "0xcebfceb4cebfcf83",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x6fe1ba9f6f6f"
+  },
+  {
+   "label": "0xd181d0bed0bad0b5",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x636f6b65"
+  },
+  {
+   "label": "0x636f6b65",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x636f6b65"
+  },
+  {
+   "label": "0xd0bed0bad185",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x6f6b78"
+  },
+  {
+   "label": "0x6f6b78",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x6f6b78"
+  },
+  {
+   "label": "0xd182d0b5d195d38fd0b0",
+   "length": 5,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0x7465736c61"
+  },
+  {
+   "label": "0x7465736c61",
+   "length": 5,
+   "ok": true,
+   "priceLength": 5,
+   "skeleton": "0x7465736c61"
+  },
+  {
+   "label": "0xd0bcd0b5d182d0b0",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x726e657461"
+  },
+  {
+   "label": "0x6d657461",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x726e657461"
+  },
+  {
+   "label": "0xd0b73030",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x336f6f"
+  },
+  {
+   "label": "0x333030",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x336f6f"
+  },
+  {
+   "label": "0xd0bcd0b0d0bcd0b0",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x726e61726e61"
+  },
+  {
+   "label": "0x6d616d61",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x726e61726e61"
+  },
+  {
+   "label": "0xcebdceb1ceb9",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0xcf89cebfcf89",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x76766f7676"
+  },
+  {
+   "label": "0x6f7864386461366266323639363461663964376565643965303365353334313564333761613936303435",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x6f78666f7264",
+   "length": 6,
+   "ok": true,
+   "priceLength": 6,
+   "skeleton": "0x6f78666f7264"
+  },
+  {
+   "label": "0x6f7862656466616365",
+   "length": 9,
+   "ok": true,
+   "priceLength": 9,
+   "skeleton": "0x6f7862656466616365"
+  },
+  {
+   "label": "0x6f78626564666163656431",
+   "length": 0,
+   "ok": false,
+   "priceLength": 0,
+   "skeleton": "0x"
+  },
+  {
+   "label": "0x777777",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x767676767676"
+  },
+  {
+   "label": "0x767676767676",
+   "length": 6,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x767676767676"
+  },
+  {
+   "label": "0x6d6f6f6e",
+   "length": 4,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x726e6f6f6e"
+  },
+  {
+   "label": "0x726e6f6f6e",
+   "length": 5,
+   "ok": true,
+   "priceLength": 4,
+   "skeleton": "0x726e6f6f6e"
+  },
+  {
+   "label": "0x6275726e",
+   "length": 4,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x6275726e"
+  },
+  {
+   "label": "0x62756d",
+   "length": 3,
+   "ok": true,
+   "priceLength": 3,
+   "skeleton": "0x6275726e"
+  }
+ ]
+}

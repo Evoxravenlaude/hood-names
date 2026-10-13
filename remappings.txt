@@ -1,0 +1,4 @@
+@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
+@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/
+@ensdomains/buffer/=node_modules/@ensdomains/buffer/
+forge-std/=node_modules/forge-std/src/
