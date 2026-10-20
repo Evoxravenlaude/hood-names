@@ -2,25 +2,99 @@
 <html lang="en" data-theme="dark">
   <head>
     <script>
-      // The saved theme, before anything is drawn.
+      // The saved setting (day or night), before anything is drawn.
       try {
         if (localStorage.getItem('hood-names-theme') === 'light') {
           document.documentElement.dataset.theme = 'light';
           document.addEventListener('DOMContentLoaded', function () {
             var m = document.querySelector('meta[name="theme-color"]');
-            if (m) m.setAttribute('content', '#f2f2ee');
+            if (m) m.setAttribute('content', '#e9eef7');
           });
         }
       } catch (e) {}
     </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Hood Names</title>
-    <meta name="description" content="One name for your wallet on Robinhood Chain. Independent project, not affiliated with Robinhood." />
+    <title>.hood names</title>
+    <meta name="description" content="One name for your wallet on Robinhood Chain, in your own alphabet. Independent project, not affiliated with Robinhood." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="theme-color" content="#110e08" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0b1030" />
+    <meta property="og:title" content=".hood names" />
+    <meta property="og:description" content="One name for your wallet on Robinhood Chain, in your own alphabet." />
+    <meta property="og:image" content="/og.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <style>
+      /* The loading screen: the sign is put up while the site loads. */
+      #boot { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: #0b1030; transition: opacity 0.45s ease, visibility 0.45s; }
+      html[data-theme='light'] #boot { background: #e9eef7; }
+      #boot .b-in { display: grid; justify-items: center; gap: 22px; transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+      #boot svg { width: 112px; height: 112px; overflow: visible; }
+      #boot .frame { stroke-dasharray: 140; stroke-dashoffset: 140; animation: b-draw 0.7s cubic-bezier(0.65, 0, 0.35, 1) 0.1s forwards; }
+      #boot .fill { opacity: 0; animation: b-fade 0.35s ease-out 0.55s forwards; }
+      #boot .hair { opacity: 0; animation: b-fade 0.3s ease-out 0.75s forwards; }
+      #boot .h { stroke-dasharray: 40; stroke-dashoffset: 40; animation: b-draw 0.45s ease-out 0.8s forwards; }
+      #boot .dot { opacity: 0; animation: b-neon 0.6s linear 1s forwards; }
+      html[data-theme='dark'] #boot svg { filter: drop-shadow(0 0 22px rgba(204, 255, 0, 0.28)); }
+      #boot .wins { display: flex; gap: 8px; }
+      #boot .wins i { --off: #1f2b72; width: 10px; height: 14px; border-radius: 2px; background: var(--off); animation: b-win 1.5s steps(1) infinite; }
+      html[data-theme='light'] #boot .wins i { --off: #c6d3ec; }
+      #boot .wins i:nth-child(2) { animation-delay: 0.15s; }
+      #boot .wins i:nth-child(3) { animation-delay: 0.3s; }
+      #boot .wins i:nth-child(4) { animation-delay: 0.45s; }
+      #boot .wins i:nth-child(5) { animation-delay: 0.6s; }
+      #boot.quick { animation: b-fade 0.2s ease-out 0.45s backwards; }
+      #boot.quick * { animation-duration: 0s !important; animation-delay: 0s !important; }
+      #boot.done { opacity: 0; visibility: hidden; }
+      #boot.done .b-in { transform: scale(1.08); }
+      @keyframes b-draw { to { stroke-dashoffset: 0; } }
+      @keyframes b-fade { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes b-neon { 0% { opacity: 0; } 15% { opacity: 1; } 25% { opacity: 0.2; } 40% { opacity: 1; } 50% { opacity: 0.4; } 65%, 100% { opacity: 1; } }
+      @keyframes b-win { 0% { background: #ccff00; } 50% { background: var(--off); } }
+      @media (prefers-reduced-motion: reduce) {
+        #boot *, #boot { animation: none !important; transition: none !important; }
+        #boot .frame, #boot .h { stroke-dashoffset: 0; }
+        #boot .fill, #boot .hair, #boot .dot { opacity: 1; }
+      }
+    </style>
+    <noscript><style>#boot { display: none; }</style></noscript>
   </head>
   <body>
+    <div id="boot" aria-hidden="true">
+      <div class="b-in">
+        <svg viewBox="0 0 40 40">
+          <rect class="fill" x="2" y="5" width="36" height="30" rx="8" fill="#1F3FA8" />
+          <rect class="frame" x="2" y="5" width="36" height="30" rx="8" fill="none" stroke="#CCFF00" stroke-width="3" pathLength="140" />
+          <rect class="hair" x="6.5" y="9.5" width="27" height="21" rx="4.5" fill="none" stroke="#fff" stroke-width="1.4" />
+          <circle class="dot" cx="13.5" cy="24.5" r="3" fill="#CCFF00" />
+          <path class="h" d="M20 13.5v12.5M20 19.5c0-2 1.6-3.2 3.4-3.2s3.2 1.2 3.2 3.2V26" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" pathLength="40" />
+        </svg>
+        <div class="wins"><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+    <script>
+      // The full sequence plays once per visit; after that the screen only
+      // shows if loading is slow. The site calls __bootDone when it is drawn.
+      (function () {
+        var boot = document.getElementById('boot');
+        var start = Date.now();
+        var first = true;
+        try { first = !sessionStorage.getItem('hood-names-booted'); sessionStorage.setItem('hood-names-booted', '1'); } catch (e) {}
+        if (!first) boot.className = 'quick';
+        var done = false;
+        window.__bootDone = function () {
+          if (done) return;
+          done = true;
+          setTimeout(function () {
+            boot.className += ' done';
+            setTimeout(function () { boot.remove(); }, 500);
+          }, Math.max(0, start + (first ? 1500 : 0) - Date.now()));
+        };
+        // Never hide the page for long, even if something fails to load.
+        setTimeout(window.__bootDone, 9000);
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

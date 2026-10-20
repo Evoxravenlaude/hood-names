@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 /**
- * Dark or light. Dark is the default, in Robinhood Chain's own colours; the
+ * Night (dark) or day (light) on the street. Night is the default; the
  * reader's choice is kept in this browser. index.html applies the saved
  * choice before anything is drawn, so the page never flashes the other one.
  */
@@ -16,7 +16,7 @@ export function currentTheme(): Theme {
 export function setTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme;
   // The phone's browser bar follows the page.
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#f2f2ee' : '#110e08');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#e9eef7' : '#0b1030');
   try {
     localStorage.setItem(KEY, theme);
   } catch {

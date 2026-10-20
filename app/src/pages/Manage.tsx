@@ -10,6 +10,7 @@ import { Status, TxNotice } from '../components/Bits';
 import { ConnectPrompt } from '../components/Wallet';
 import { date, eth, heldFor, isAddress, shortAddress, toAddress, token } from '../lib/format';
 import { useNameStatus, usePrimaryName, useRecipient, useStablecoin, type NameStatus } from '../lib/hooks';
+import { Plate } from '../components/Plate';
 import { Avatar } from '../components/Avatar';
 import { RecipientField } from './GiftCards';
 import { avatarSrc, toAvatarDataUrl } from '../lib/image';
@@ -43,7 +44,7 @@ export function Manage() {
     return (
       <div className="page narrow stack">
         <Link to="/names" className="back">← {t('My names')}</Link>
-        <h1 className="name-title" translate="no"><bdi>{label}</bdi><span className="dim">.{parentName}</span></h1>
+        <h1 className="name-head"><Plate label={label} size="lg" /></h1>
         <p className="muted">{t('{name} is not registered.', { name })}</p>
         <Link to={`/?q=${encodeURIComponent(label)}`}>{t('Check if it is available')}</Link>
       </div>
@@ -60,11 +61,10 @@ export function Manage() {
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px 24px', margin: '16px 0 28px' }}>
         <Avatar label={label} size={72} remote={isHolder} />
         <div style={{ marginRight: 'auto', minWidth: 0 }}>
-          <h1 className="name-title" translate="no"><bdi>{label}</bdi><span className="dim">.{parentName}</span></h1>
+          <h1 className="name-head"><Plate label={label} size="lg" top={grace ? undefined : shortAddress(s.holder)} tone={grace ? 'bad' : undefined} /></h1>
           <div className="muted" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', fontSize: 15, marginTop: 6 }}>
             <span translate="no">{grace ? t('Expired {date}', { date: date(s.expires) }) : t('Expires {date}', { date: date(s.expires) })}</span>
             {primary.data === name && <span>{t('Your primary name')}</span>}
-            {!grace && <span className="mono" translate="no">{shortAddress(s.holder)}</span>}
             {s.wrapped && <span>{t('Wrapped')}</span>}
           </div>
         </div>

@@ -4,6 +4,7 @@ import { zeroAddress } from 'viem';
 import { useAccount, useReadContract } from 'wagmi';
 import { pointsLedgerAbi, referralHubAbi } from '../abi';
 import { chain, deployment, explorerUrl, GRACE_PERIOD, modules } from '../config';
+import { Plate } from '../components/Plate';
 import { Avatar } from '../components/Avatar';
 import { TxNotice } from '../components/Bits';
 import { ConnectPrompt } from '../components/Wallet';
@@ -12,7 +13,6 @@ import { useOwnedNames, usePointsActivity, usePrimaryName, useStablecoin } from 
 import { fullName } from '../lib/names';
 import { useTx } from '../lib/tx';
 import { tn, useT } from '../i18n';
-import { NameText } from '../components/Bits';
 import { GettingStarted } from '../components/GettingStarted';
 
 const DAY = 86400n;
@@ -47,7 +47,7 @@ export function MyNames() {
             </div>
           ))}
 
-          <section className="card" style={{ overflow: 'hidden' }}>
+          <section className="card">
             {owned.isLoading ? (
               <p className="card-pad muted" style={{ margin: 0 }}>{t('Looking up your names…')}</p>
             ) : owned.isError ? (
@@ -58,37 +58,30 @@ export function MyNames() {
                 <Link to="/">{t('Search for one')}</Link>
               </div>
             ) : (
-              <div className="table-wrap">
-                <table className="list fluid">
-                  <thead>
-                    <tr><th scope="col">{t('Name')}</th><th scope="col">{t('Status')}</th><th scope="col" className="hide-sm">{t('Expires')}</th><th scope="col"><span className="sr-only">{t('Actions')}</span></th></tr>
-                  </thead>
-                  <tbody>
-                    {owned.data.map(({ label, status }) => {
-                      const name = fullName(label);
-                      const soon = status.state === 'Active' && status.expires - now < 30n * DAY;
-                      return (
-                        <tr key={label}>
-                          <td style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <Avatar label={label} size={32} />
-                            <Link className="name-link" to={`/name/${encodeURIComponent(label)}`}><NameText>{name}</NameText></Link>
-                            {primary.data === name && <span className="tag">{t('Primary')}</span>}
-                          </td>
-                          <td style={{ color: status.state === 'Grace' || soon ? 'var(--warn)' : undefined }}>
-                            {status.state === 'Grace' ? t('Expired, in grace period') : soon ? (status.expires - now < DAY ? t('Expires within a day') : tn(Number((status.expires - now) / DAY), 'Expires in {n} day', 'Expires in {n} days', { n: Number((status.expires - now) / DAY) })) : t('Active')}
-                          </td>
-                          <td className="hide-sm" translate="no">{date(status.expires)}</td>
-                          <td>
-                            <Link to={`/name/${encodeURIComponent(label)}${status.state === 'Grace' || soon ? '?tab=ownership' : ''}`}>
-                              {status.state === 'Grace' || soon ? t('Renew') : t('Manage')}
-                            </Link>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <ul className="rack">
+                {owned.data.map(({ label, status }) => {
+                  const name = fullName(label);
+                  const soon = status.state === 'Active' && status.expires - now < 30n * DAY;
+                  const late = status.state === 'Grace' || soon;
+                  return (
+                    <li key={label}>
+                      <Link className="rack-sign" to={`/name/${encodeURIComponent(label)}`} aria-label={name}>
+                        <Plate label={label} size="md" tone={status.state === 'Grace' ? 'bad' : undefined} />
+                      </Link>
+                      <div className="rack-meta">
+                        <Avatar label={label} size={28} />
+                        <span className={late ? 'late' : undefined}>
+                          {status.state === 'Grace' ? t('Expired, in grace period') : soon ? (status.expires - now < DAY ? t('Expires within a day') : tn(Number((status.expires - now) / DAY), 'Expires in {n} day', 'Expires in {n} days', { n: Number((status.expires - now) / DAY) })) : t('Expires {date}', { date: date(status.expires) })}
+                        </span>
+                        {primary.data === name && <span className="tag">{t('Primary')}</span>}
+                        <Link className="rack-go" to={`/name/${encodeURIComponent(label)}${late ? '?tab=ownership' : ''}`}>
+                          {late ? t('Renew') : t('Manage')}
+                        </Link>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </section>
 

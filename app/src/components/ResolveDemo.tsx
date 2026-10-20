@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { parentName } from '../config';
-import { useT } from '../i18n';
 
 /** Example names in several alphabets, each with a made-up address. */
 const EXAMPLES: [string, string][] = [
@@ -19,30 +17,32 @@ const graphemes = (s: string) =>
     : [...s];
 
 /**
- * The hero's one moving part: a wallet address that resolves into a name.
- * The address scrambles and settles, left to right, into the name, which is
- * the whole product in one look. Pauses when the tab is hidden; shows a
- * still pair for people who ask for reduced motion.
+ * The sign's idle state: while nothing is typed, it shows an address on its
+ * top line and the name it resolves to, scrambling from the address into
+ * the name, one example after another. That is the whole product in one
+ * look. Stops while someone is typing, pauses when the tab is hidden, and
+ * holds still for people who ask for reduced motion.
  */
-export function ResolveDemo() {
-  const t = useT();
+export function useResolveDemo(active: boolean) {
   const [i, setI] = useState(0);
   const [shown, setShown] = useState(EXAMPLES[0][0]);
   const [settled, setSettled] = useState(true);
   const timer = useRef<number>();
+  const first = useRef(true);
 
   useEffect(() => {
-    if (reduced()) return;
+    if (!active || reduced()) return;
     const cycle = window.setInterval(() => {
       if (document.hidden) return;
       setI((n) => (n + 1) % EXAMPLES.length);
     }, 3400);
     return () => clearInterval(cycle);
-  }, []);
+  }, [active]);
 
   useEffect(() => {
     const target = graphemes(EXAMPLES[i][0]);
-    if (reduced() || i === 0 && shown === EXAMPLES[0][0]) {
+    if (reduced() || first.current) {
+      first.current = false;
       setShown(EXAMPLES[i][0]);
       return;
     }
@@ -65,20 +65,7 @@ export function ResolveDemo() {
     };
     timer.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(timer.current!);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i]);
 
-  const [, address] = EXAMPLES[i];
-  return (
-    <div className="resolve" aria-label={t('An example: a long wallet address becomes a short name.')} role="img">
-      <span className="resolve-from mono" translate="no" key={address}>{address}</span>
-      <span className="resolve-arrow" aria-hidden="true">
-        <svg width="40" height="14" viewBox="0 0 40 14" fill="none"><path d="M0 7h36m0 0-6-6m6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-      </span>
-      <span className={'resolve-to' + (settled ? ' settled' : '')} translate="no" aria-hidden="true">
-        <bdi>{shown}</bdi>
-        <span className="dim">.{parentName}</span>
-      </span>
-    </div>
-  );
+  return { address: EXAMPLES[i][1], shown, settled };
 }

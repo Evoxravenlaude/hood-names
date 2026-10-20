@@ -12,7 +12,9 @@ const ctx = await browser.newContext({ locale: 'en-US' });
 const page = await ctx.newPage();
 page.on('pageerror', (e) => errors.push(e.message));
 await page.goto(`${BASE}/`);
-check((await page.locator('html').getAttribute('data-theme')) === 'dark', 'dark by default');
+check((await page.locator('html').getAttribute('data-theme')) === 'dark', 'dark (night) by default');
+await page.locator('#boot').waitFor({ state: 'detached', timeout: 6000 }).then(() => check(true, 'the loading screen goes away'), () => check(false, 'the loading screen goes away'));
+check(await page.locator('.street svg').isVisible(), 'the street is drawn under the sign');
 
 // The tour, from the hero.
 await page.getByRole('button', { name: /See how it works/ }).click();
@@ -28,10 +30,25 @@ check(!(await page.getByRole('button', { name: /See how it works/ }).count()), '
 
 // Theme switch, kept across a reload.
 await page.getByRole('button', { name: 'Switch to light mode' }).click();
-check((await page.locator('html').getAttribute('data-theme')) === 'light', 'switched to light');
+await page.waitForFunction(() => document.documentElement.dataset.theme === 'light', null, { timeout: 3000 }).catch(() => {});
+check((await page.locator('html').getAttribute('data-theme')) === 'light', 'switched to day (light)');
 await page.reload();
 check((await page.locator('html').getAttribute('data-theme')) === 'light', 'light kept after a reload');
 await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+
+// The brand page and its files, and the name picture.
+await page.goto(`${BASE}/brand`);
+await page.getByRole('heading', { name: 'The .hood names brand' }).waitFor();
+for (const f of ['/brand/mark.svg', '/brand/wordmark-night.svg', '/brand/wordmark-day.svg', '/og.png', '/favicon.svg']) {
+  const r = await page.request.get(BASE + f);
+  check(r.ok(), `${f} is served`);
+}
+const picture = await page.evaluate(async () => {
+  const m = await import('/src/lib/card.ts');
+  return (await m.nameCard('sage', '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', 'light')).size;
+});
+check(picture > 20_000, `the name picture is drawn (${Math.round(picture / 1024)} KB)`);
+await page.goto(`${BASE}/`);
 
 // The checklist ticks itself from the wallet.
 check(await page.getByText('0 of 6 done').isVisible(), 'checklist starts at 0 of 6 without a wallet');

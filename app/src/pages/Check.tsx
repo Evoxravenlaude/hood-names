@@ -35,9 +35,14 @@ export function Check() {
       </div>
       <div className="field">
         <label htmlFor="chk">{t('Name')}</label>
-        <div className="searchbox" style={{ marginTop: 0, padding: '4px 20px' }}>
-          <input id="chk" value={text} onChange={(e) => setText(e.target.value)} autoCapitalize="off" spellCheck={false} translate="no" placeholder={t('name')} style={{ fontSize: 30 }} />
-          <span className="suffix" style={{ fontSize: 30 }} translate="no">.{parentName}</span>
+        <div className="sign sign-sm" onClick={() => document.getElementById('chk')?.focus()}>
+          <span className="sign-line">
+            <span className="sign-field">
+              <span className="sign-mirror" aria-hidden="true">{text || t('name')}</span>
+              <input id="chk" size={1} value={text} onChange={(e) => setText(e.target.value)} autoCapitalize="off" spellCheck={false} translate="no" placeholder={t('name')} />
+            </span>
+            <span className="sign-end" translate="no">.{parentName}</span>
+          </span>
         </div>
       </div>
       {query.trim() && <Verdict input={query} />}

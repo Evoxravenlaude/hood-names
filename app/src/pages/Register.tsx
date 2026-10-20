@@ -11,6 +11,9 @@ import { eth, token, usd } from '../lib/format';
 import { refHash, useControllerInfo, useNameStatus, usePrimaryName, useStablecoin } from '../lib/hooks';
 import { fullName, nodeOf, parseLabel } from '../lib/names';
 import { useTx } from '../lib/tx';
+import { Plate } from '../components/Plate';
+import { saveNameCard } from '../lib/card';
+import { currentTheme } from '../lib/theme';
 import { Confetti, WaitRing } from '../components/Celebrate';
 import { useToast } from '../components/Toast';
 import { chain } from '../config';
@@ -309,8 +312,8 @@ function RegisterName({ label }: { label: string }) {
     <div className="page">
       <Link to={`/?q=${encodeURIComponent(label)}`} className="back">← {t('Back to search')}</Link>
       {!registered && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '12px 20px', margin: '16px 0 32px' }}>
-          <h1 className="name-title" translate="no"><bdi>{label}</bdi><span className="dim">.{parentName}</span></h1>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px 20px', margin: '16px 0 32px' }}>
+          <h1 className="name-head"><Plate label={label} size="lg" /></h1>
           <Status tone="good">{t('Available')}</Status>
         </div>
       )}
@@ -318,10 +321,7 @@ function RegisterName({ label }: { label: string }) {
       {registered ? (
         <div className="yours">
           <Confetti />
-          <div className="nameplate" translate="no">
-            <div className="np-name"><bdi>{label}</bdi><span className="dim">.{parentName}</span></div>
-            {address && <div className="np-owner">{address.slice(0, 6)}…{address.slice(-4)}</div>}
-          </div>
+          <Plate label={label} size="xl" className="plate-in" top={address ? `${address.slice(0, 6)}…${address.slice(-4)}` : undefined} />
           <h2>{t('{name} is yours.', { name: fullName(label) })}</h2>
           <p className="lede">
             {primary
@@ -351,6 +351,13 @@ function RegisterName({ label }: { label: string }) {
             >
               {t('Share on X')}
             </a>
+            <button
+              type="button"
+              className="btn btn-plain"
+              onClick={() => saveNameCard(label, address, currentTheme()).then(() => toast(t('Picture saved')), () => toast(t('Could not make the picture.'), 'bad'))}
+            >
+              {t('Save picture')}
+            </button>
           </div>
           <div className="next-grid">
             <Link className="next-card" to={`/name/${encodeURIComponent(label)}`}>

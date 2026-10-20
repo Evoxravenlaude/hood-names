@@ -19,7 +19,7 @@ export function Confetti() {
       canvas.height = innerHeight * dpr;
     };
     resize();
-    const colors = ['#ccff00', '#ffffff', '#e5ff80', '#110e08'];
+    const colors = ['#ccff00', '#ffffff', '#1f3fa8', '#e5ff80'];
     const parts = Array.from({ length: 140 }, () => ({
       x: innerWidth / 2 + (Math.random() - 0.5) * 120,
       y: innerHeight * 0.38,

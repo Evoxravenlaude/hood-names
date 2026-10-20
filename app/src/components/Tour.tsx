@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Plate } from './Plate';
 import { chain, parentName } from '../config';
 import { useT } from '../i18n';
 
@@ -63,7 +64,7 @@ export function Tour({ open, onClose, onFinish }: { open: boolean; onClose: () =
         <div className="tour-art art-resolve">
           <span className="mono">0x7099…79C8</span>
           <span className="arrow" aria-hidden="true">↓</span>
-          <span className="nm" translate="no">sage<span className="dim">.{parentName}</span></span>
+          <Plate label="sage" size="md" className="nm" />
         </div>
       ),
     },
@@ -96,8 +97,8 @@ export function Tour({ open, onClose, onFinish }: { open: boolean; onClose: () =
       body: t('Names that only look like yours, with a swapped digit or a letter from another alphabet, are refused while you hold yours.'),
       art: (
         <div className="tour-art art-safe">
-          <span className="nm" translate="no"><s>a1ice</s></span>
-          <span className="nm ok" translate="no">alice</span>
+          <Plate label="a1ice" size="sm" tone="bad" className="struck" />
+          <Plate label="alice" size="md" className="ok" />
         </div>
       ),
     },

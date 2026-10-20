@@ -13,13 +13,15 @@ import { Check } from './pages/Check';
 import { GiftCards } from './pages/GiftCards';
 import { Faucet } from './pages/Faucet';
 import { Stats } from './pages/Stats';
+import { Brand } from './pages/Brand';
 import { ready, useT } from './i18n';
 import { guardAgainstTranslators } from './lib/translateSafe';
 import { ReviewProvider } from './components/Review';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './components/Toast';
 // Fonts are served from this site, not a third party.
-import '@fontsource-variable/bricolage-grotesque/opsz.css';
+import '@fontsource-variable/archivo/wdth.css';
+// Geist draws Cyrillic, which Archivo does not have.
 import '@fontsource-variable/geist';
 import '@fontsource-variable/geist-mono';
 import './styles.css';
@@ -33,9 +35,13 @@ guardAgainstTranslators();
 function NotFound() {
   const t = useT();
   return (
-    <div className="page narrow stack">
-      <h1 className="title">{t('Page not found')}</h1>
-      <Link to="/">{t('Back to search')}</Link>
+    <div className="page narrow stack lost">
+      <h1 className="plate plate-lg plate-in">
+        <span className="plate-top" translate="no">404</span>
+        <span className="plate-name">{t('Page not found')}</span>
+      </h1>
+      <p className="lede">{t('There is no page at this address. The name you want may still be free.')}</p>
+      <Link className="btn btn-primary" style={{ justifySelf: 'start' }} to="/">{t('Back to search')}</Link>
     </div>
   );
 }
@@ -43,6 +49,11 @@ function NotFound() {
 /** Each page eases in when you arrive, so a change of page reads as one. */
 function AnimatedRoutes() {
   const location = useLocation();
+  // Take the loading screen down once the page is drawn in its own fonts.
+  React.useEffect(() => {
+    const w = window as Window & { __bootDone?: () => void };
+    document.fonts.ready.finally(() => w.__bootDone?.());
+  }, []);
   return (
     <div key={location.pathname} className="page-enter">
       <Routes location={location}>
@@ -54,6 +65,7 @@ function AnimatedRoutes() {
         <Route path="/gift-cards" element={<GiftCards />} />
         <Route path="/faucet" element={<Faucet />} />
         <Route path="/stats" element={<Stats />} />
+        <Route path="/brand" element={<Brand />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

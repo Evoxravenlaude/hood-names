@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { zeroAddress, zeroHash } from 'viem';
 import { useReadContract } from 'wagmi';
 import { controllerAbi, guardAbi } from '../abi';
 import { deployment, GRACE_PERIOD, parentName, YEAR } from '../config';
-import { NameText, SearchIcon, Status } from '../components/Bits';
+import { NameText, Status } from '../components/Bits';
 import { useT } from '../i18n';
 import { ago, date, usd } from '../lib/format';
 import { useAlphabets, useControllerInfo, useNameStatus, useRegisteredLabels } from '../lib/hooks';
 import { fullName, parseLabel } from '../lib/names';
-import { ResolveDemo } from '../components/ResolveDemo';
+import { useResolveDemo } from '../components/ResolveDemo';
+import { Street } from '../components/Street';
 import { GettingStarted } from '../components/GettingStarted';
 import { Tour, tourSeen } from '../components/Tour';
 
@@ -33,6 +34,10 @@ export function Search() {
   useEffect(() => {
     setParams(query ? { q: query } : {}, { replace: true });
   }, [query, setParams]);
+  // Ready to type, without scrolling the headline away on short screens.
+  useEffect(() => {
+    input.current?.focus({ preventScroll: true });
+  }, []);
   const pick = (name: string) => {
     setText(name);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -48,42 +53,75 @@ export function Search() {
   const [firstVisit] = useState(() => !tourSeen());
   const [tone, setTone] = useState<'good' | 'bad' | 'neutral'>('neutral');
 
+  const demo = useResolveDemo(!text);
+  const [pill, setPill] = useState('');
+  const registered = useRegisteredLabels();
+  const streetNames = useMemo(
+    () => [...(registered.data?.values() ?? [])].sort((a, b) => Number(b.block - a.block)),
+    [registered.data],
+  );
+  const typed = !!query.trim();
+  const onResult = useCallback((tn: 'good' | 'bad' | 'neutral', p: string) => {
+    setTone(tn);
+    setPill(p);
+  }, []);
+
   return (
     <div className="page" style={{ paddingTop: 0 }}>
       <section className="hero">
-        <h1>{t('One name for your wallet on Robinhood Chain.')}</h1>
-        <div className="hero-top">
-          <div className="hero-copy">
-            <p>
-              {t('Send to {example} instead of a long address. Written in your own alphabet, and nobody can register a name that looks like yours.', {
-                example: <NameText key="e">{`sage.${parentName}`}</NameText>,
-              })}
-            </p>
-            <button type="button" className={'tour-link' + (firstVisit ? ' fresh' : '')} onClick={() => setTour(true)}>
-              <span className="play" aria-hidden="true">
-                <svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 1.8v8.4L10 6 3 1.8Z" fill="currentColor" /></svg>
-              </span>
-              {firstVisit ? t('New here? See how it works in 30 seconds') : t('How it works')}
-            </button>
-          </div>
-          <ResolveDemo />
+        <div className="hero-copy">
+          <h1>{t('One name for your wallet on Robinhood Chain.')}</h1>
+          <p>
+            {t('Send to {example} instead of a long address. Written in your own alphabet, and nobody can register a name that looks like yours.', {
+              example: <NameText key="e">{`sage.${parentName}`}</NameText>,
+            })}
+          </p>
+          <button type="button" className={'tour-link' + (firstVisit ? ' fresh' : '')} onClick={() => setTour(true)}>
+            <span className="play" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 1.8v8.4L10 6 3 1.8Z" fill="currentColor" /></svg>
+            </span>
+            {firstVisit ? t('New here? See how it works in 30 seconds') : t('How it works')}
+          </button>
         </div>
-        <form className="searchbox" role="search" data-tone={query.trim() ? tone : undefined} onSubmit={(e) => e.preventDefault()}>
-          <label htmlFor="name-search" className="sr-only">{t('Search for a name')}</label>
-          <SearchIcon />
-          <input
-            id="name-search"
-            ref={input}
-            autoFocus
-            autoComplete="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            translate="no"
-            placeholder={t('Search a name')}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-          <span className="suffix" translate="no">.{parentName}</span>
+        <form
+          className="sign"
+          role="search"
+          data-tone={typed ? tone : undefined}
+          onSubmit={(e) => e.preventDefault()}
+          onClick={() => input.current?.focus()}
+        >
+          <span className="sign-top" translate="no">
+            {typed ? (
+              <span className="sign-status" key={pill}>{pill}</span>
+            ) : (
+              <span className="mono" key={demo.address} aria-hidden="true">{demo.address}</span>
+            )}
+            <span className="sign-net" translate="no">Robinhood Chain</span>
+          </span>
+          <span className="sign-line">
+            <label htmlFor="name-search" className="sr-only">{t('Search for a name')}</label>
+            <span className="sign-field">
+              <span className="sign-mirror" aria-hidden="true">{text || demo.shown}</span>
+              <input
+                id="name-search"
+                ref={input}
+                size={1}
+                autoComplete="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                translate="no"
+                placeholder={t('Search a name')}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+              />
+              {!text && (
+                <span className={'sign-demo' + (demo.settled ? ' settled' : '')} aria-hidden="true" translate="no">
+                  <bdi>{demo.shown}</bdi>
+                </span>
+              )}
+            </span>
+            <span className="sign-end" translate="no">.{parentName}</span>
+          </span>
         </form>
         <div className="pills">
           <span className="small faint">{t('Try')}</span>
@@ -91,10 +129,19 @@ export function Search() {
             <button key={x} type="button" className="pill-btn" translate="no" onClick={() => pick(x)}>{x}</button>
           ))}
         </div>
-        <JustRegistered />
+        {typed && <Result input={query} onTone={onResult} />}
       </section>
 
-      {query.trim() && <Result input={query} onTone={setTone} />}
+      <section className="block" aria-label={t('Just registered')}>
+        <Street names={streetNames} />
+        <div className="block-cap">
+          {streetNames.length > 0 && (
+            <p>{t('Every neon window is a name registered on Robinhood Chain. Point at one to read it.')}</p>
+          )}
+          <JustRegistered />
+        </div>
+      </section>
+
 
       <GettingStarted onFindName={findName} compact />
       <Tour open={tour} onClose={() => setTour(false)} onFinish={findName} />
@@ -195,7 +242,7 @@ function Alphabets({ onPick }: { onPick: (name: string) => void }) {
   );
 }
 
-function Result({ input, onTone }: { input: string; onTone: (tone: 'good' | 'bad' | 'neutral') => void }) {
+function Result({ input, onTone }: { input: string; onTone: (tone: 'good' | 'bad' | 'neutral', pill: string) => void }) {
   const t = useT();
   const parsed = parseLabel(input);
   const label = parsed.ok ? parsed.label : undefined;
@@ -283,7 +330,7 @@ function Result({ input, onTone }: { input: string; onTone: (tone: 'good' | 'bad
   const q = quote.data;
   const canBuy = parsed.ok && s?.state === 'Available';
   const shownTone = !parsed.ok ? 'bad' : s?.state === 'Active' ? 'neutral' : tone;
-  useEffect(() => onTone(shownTone), [shownTone, onTone]);
+  useEffect(() => onTone(shownTone, pill), [shownTone, pill, onTone]);
 
   return (
     <section className="result" aria-live="polite">
