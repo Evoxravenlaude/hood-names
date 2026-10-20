@@ -1,28 +1,25 @@
-import { useMemo } from 'react';
+import { useMemo, type MouseEvent } from 'react';
 import { Mark, Wordmark } from '../components/Logo';
 import { Plate } from '../components/Plate';
 import { Street } from '../components/Street';
 import { useToast } from '../components/Toast';
-import { mark, useT } from '../i18n';
+import { useT } from '../i18n';
 import { useRegisteredLabels } from '../lib/hooks';
-
-const COLOURS = [
-  { hex: '#1F3FA8', name: mark('Enamel'), use: mark('The sign, and accents by day') },
-  { hex: '#CCFF00', name: mark('Robin Neon'), use: mark('The frame, the ending of a name, lit windows. Robinhood Chain’s colour.') },
-  { hex: '#0B1030', name: mark('Midnight'), use: mark('The night sky, and ink by day') },
-  { hex: '#121A44', name: mark('Night street'), use: mark('Panels at night') },
-  { hex: '#E9EEF7', name: mark('Daylight'), use: mark('The day sky') },
-  { hex: '#FFFFFF', name: mark('White'), use: mark('Lettering on the sign, houses by day') },
-  { hex: '#FF8A3D', name: mark('Sodium'), use: mark('Warnings and refusals, like the orange streetlight') },
-] as const;
+import { PALETTES, paletteById, settingVars, type PaletteId } from '../lib/palettes';
+import { rememberPalette, setPalette, usePalette, useTheme } from '../lib/theme';
+import { reveal } from '../lib/reveal';
 
 /**
  * The brand, for anyone writing about or building with .hood names: the
- * story, the sign, the mark with files to download, colours, type and voice.
+ * story, the sign, the mark with files to download, the colours, type and
+ * voice. Everything on the page is shown in the colour the reader chose.
  */
 export function Brand() {
   const t = useT();
   const toast = useToast();
+  const palette = usePalette();
+  const theme = useTheme();
+  const current = paletteById(palette);
   const registered = useRegisteredLabels();
   const names = useMemo(
     () => [...(registered.data?.values() ?? [])].sort((a, b) => Number(b.block - a.block)),
@@ -31,6 +28,11 @@ export function Brand() {
   const copy = (hex: string) => {
     navigator.clipboard?.writeText(hex).then(() => toast(t('Copied {value}', { value: hex })), () => undefined);
   };
+  const use = (id: PaletteId, e: MouseEvent<HTMLButtonElement>) => {
+    rememberPalette(id);
+    reveal(e.currentTarget, () => setPalette(id));
+  };
+  const files = `/brand/${palette}`;
 
   return (
     <div className="page brand-page">
@@ -42,16 +44,16 @@ export function Brand() {
       <section className="brand-sec">
         <div className="brand-copy">
           <h2 className="section">{t('The block')}</h2>
-          <p>{t('Every name is a street sign on Robinhood Chain, and every registered name is a lit window on the street. The same street is drawn at night and by day, and people choose which one they see.')}</p>
+          <p>{t('Every name is a street sign on Robinhood Chain, and every registered name is a lit window on the street. The same street is drawn at night and by day, in the colour each person chooses.')}</p>
         </div>
         <div className="settings">
           <figure>
             <Street names={names} setting="dark" className="mini" />
-            <figcaption><strong>{t('Night')}</strong> {t('Midnight sky, neon windows, streetlights on. The default.')}</figcaption>
+            <figcaption><strong>{t('By night')}</strong> {t('Dark sky, lit windows, streetlights on. The default.')}</figcaption>
           </figure>
           <figure>
             <Street names={names} setting="light" className="mini" />
-            <figcaption><strong>{t('Day')}</strong> {t('White houses drawn in ink, blue glass, a neon sun.')}</figcaption>
+            <figcaption><strong>{t('By day')}</strong> {t('Pale sky, houses drawn in ink, the sun out.')}</figcaption>
           </figure>
         </div>
       </section>
@@ -59,7 +61,7 @@ export function Brand() {
       <section className="brand-sec">
         <div className="brand-copy">
           <h2 className="section">{t('The sign')}</h2>
-          <p>{t('Wherever a name is the subject, it sits on its sign: enamel blue, white letters, the ending and the frame in Robin Neon, a white line inside the frame. The small line on top carries the address the name points to. The sign keeps its colours by day and by night, like a real one.')}</p>
+          <p>{t('Wherever a name is the subject, it sits on its sign: a painted plate, a frame with a fine line inside it, the ending in the frame’s colour, and the address the name points to in small type on top. The shape is the same in every colour, and a sign keeps its paint by day and by night, like a real one.')}</p>
         </div>
         <div className="sign-specimens">
           <Plate label="sage" top="0x7099…79C8" size="xl" />
@@ -72,41 +74,72 @@ export function Brand() {
         </div>
       </section>
 
-      <section className="brand-sec">
+      <section className="brand-sec" id="colours">
         <div className="brand-copy">
-          <h2 className="section">{t('The mark')}</h2>
-          <p>{t('A small sign with “.h” on it. Use the mark alone where space is tight and the full wordmark everywhere else. Leave space around it at least the height of the dot, and never recolour, stretch or tilt it.')}</p>
-          <div className="pills">
-            <a className="btn btn-plain" href="/brand/mark.svg" download="hood-names-mark.svg">{t('Download the mark')}</a>
-            <a className="btn btn-plain" href="/brand/wordmark-night.svg" download="hood-names-wordmark-night.svg">{t('Wordmark for dark backgrounds')}</a>
-            <a className="btn btn-plain" href="/brand/wordmark-day.svg" download="hood-names-wordmark-day.svg">{t('Wordmark for light backgrounds')}</a>
-          </div>
+          <h2 className="section">{t('Colours')}</h2>
+          <p>{t('Slate is the main colour. Brass, Enamel blue, Claret and Onyx are there for anyone who prefers them, from the swatch next to the day and night switch. Each has a night and a day setting. Click a colour to copy it.')}</p>
+          <p>{t('Robin Neon (#CCFF00) is Robinhood Chain’s own colour. Slate, Enamel blue and Onyx carry it on the sign; Brass and Claret use brass and gold instead. Neon is never text on a light background: there it is a fill with dark text on top.')}</p>
         </div>
-        <div className="mark-specimens">
-          <div className="ms night"><Mark size={88} /></div>
-          <div className="ms day"><Mark size={88} /></div>
-          <div className="ms night wide" data-setting="dark"><Wordmark size={46} /></div>
-          <div className="ms day wide" data-setting="light"><Wordmark size={46} /></div>
-        </div>
+        <ul className="palettes">
+          {PALETTES.map((p) => {
+            const v = settingVars(p, theme);
+            const night = settingVars(p, 'dark');
+            const day = settingVars(p, 'light');
+            const swatches: [string, string][] = [
+              [t('Sign'), v['sign-bg']],
+              [t('Frame'), v.frame],
+              [t('Ending'), v['sign-end']],
+              [t('By night'), night.paper],
+              [t('By day'), day.paper],
+            ];
+            return (
+              <li key={p.id} className="palette" data-palette={p.id} data-theme={theme} aria-current={p.id === palette ? 'true' : undefined}>
+                <div className="palette-head">
+                  <Plate label="sage" size="sm" />
+                  <div className="palette-words">
+                    <strong>{t(p.name)}</strong>
+                    <span>{t(p.note)}</span>
+                  </div>
+                </div>
+                <div className="palette-chips">
+                  {swatches.map(([label, hex]) => (
+                    <button key={label} type="button" className="chip-swatch" onClick={() => copy(hex.toUpperCase())} aria-label={t('Copy {value}', { value: `${label} ${hex.toUpperCase()}` })}>
+                      <i style={{ background: hex }} />
+                      <span>{label}</span>
+                      <span className="mono" translate="no">{hex.toUpperCase()}</span>
+                    </button>
+                  ))}
+                </div>
+                {p.id === palette ? (
+                  <span className="palette-using">{t('In use')}</span>
+                ) : (
+                  <button type="button" className="btn btn-plain palette-use" onClick={(e) => use(p.id, e)}>
+                    {t('Use {name}', { name: t(p.name) })}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       </section>
 
       <section className="brand-sec">
         <div className="brand-copy">
-          <h2 className="section">{t('Colours')}</h2>
-          <p>{t('Robin Neon is Robinhood Chain’s own colour. Enamel blue is ours. Neon is never used for text on a light background: there it is a fill with dark text on top, and enamel blue does the job instead. Click a colour to copy it.')}</p>
+          <h2 className="section">{t('The mark')}</h2>
+          <p>{t('A small sign with “.h” on it. It is painted in whichever colour is chosen; its shape never changes. Use the mark alone where space is tight and the full wordmark everywhere else. Leave space around it at least the height of the dot, and never stretch, tilt or outline it.')}</p>
+          <p className="small faint">{t('The files below are in {name}. Choose another colour to download it in that one.', { name: t(current.name) })}</p>
+          <div className="pills">
+            <a className="btn btn-plain" href={`${files}/mark.svg`} download={`hood-names-mark-${palette}.svg`}>{t('Download the mark')}</a>
+            <a className="btn btn-plain" href={`${files}/wordmark-night.svg`} download={`hood-names-wordmark-${palette}-night.svg`}>{t('Wordmark for dark backgrounds')}</a>
+            <a className="btn btn-plain" href={`${files}/wordmark-day.svg`} download={`hood-names-wordmark-${palette}-day.svg`}>{t('Wordmark for light backgrounds')}</a>
+          </div>
         </div>
-        <ul className="swatches">
-          {COLOURS.map((c) => (
-            <li key={c.hex}>
-              <button type="button" onClick={() => copy(c.hex)} aria-label={t('Copy {value}', { value: c.hex })}>
-                <span className="sw" style={{ background: c.hex }} />
-                <span className="sw-name">{t(c.name)}</span>
-                <span className="sw-hex mono" translate="no">{c.hex}</span>
-                <span className="sw-use">{t(c.use)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="mark-specimens">
+          <div className="ms" data-palette={palette} data-theme="dark"><Mark size={88} /></div>
+          <div className="ms" data-palette={palette} data-theme="light"><Mark size={88} /></div>
+          <div className="ms wide" data-palette={palette} data-theme="dark"><Wordmark size={46} /></div>
+          <div className="ms wide" data-palette={palette} data-theme="light"><Wordmark size={46} /></div>
+        </div>
       </section>
 
       <section className="brand-sec">

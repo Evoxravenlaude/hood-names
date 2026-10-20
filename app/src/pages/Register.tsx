@@ -13,7 +13,7 @@ import { fullName, nodeOf, parseLabel } from '../lib/names';
 import { useTx } from '../lib/tx';
 import { Plate } from '../components/Plate';
 import { saveNameCard } from '../lib/card';
-import { currentTheme } from '../lib/theme';
+import { currentPalette, currentTheme } from '../lib/theme';
 import { Confetti, WaitRing } from '../components/Celebrate';
 import { useToast } from '../components/Toast';
 import { chain } from '../config';
@@ -354,7 +354,7 @@ function RegisterName({ label }: { label: string }) {
             <button
               type="button"
               className="btn btn-plain"
-              onClick={() => saveNameCard(label, address, currentTheme()).then(() => toast(t('Picture saved')), () => toast(t('Could not make the picture.'), 'bad'))}
+              onClick={() => saveNameCard(label, address, currentTheme(), currentPalette()).then(() => toast(t('Picture saved')), () => toast(t('Could not make the picture.'), 'bad'))}
             >
               {t('Save picture')}
             </button>

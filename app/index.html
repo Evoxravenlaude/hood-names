@@ -1,17 +1,23 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-palette="slate">
   <head>
     <script>
-      // The saved setting (day or night), before anything is drawn.
-      try {
-        if (localStorage.getItem('hood-names-theme') === 'light') {
-          document.documentElement.dataset.theme = 'light';
+      // The saved colour and setting (day or night), before anything is drawn.
+      (function () {
+        var root = document.documentElement;
+        /* palettes:bar */ var BAR = {"slate-dark":"#14171c","slate-light":"#e7e9ec","brass-dark":"#1b1511","brass-light":"#efe8dc","enamel-dark":"#0b1030","enamel-light":"#e9eef7","claret-dark":"#180c10","claret-light":"#f2ece5","onyx-dark":"#050505","onyx-light":"#f2f2f2"};
+        try {
+          var theme = localStorage.getItem('hood-names-theme') === 'light' ? 'light' : 'dark';
+          var palette = localStorage.getItem('hood-names-palette');
+          if (!BAR[palette + '-' + theme]) palette = 'slate';
+          root.dataset.theme = theme;
+          root.dataset.palette = palette;
           document.addEventListener('DOMContentLoaded', function () {
             var m = document.querySelector('meta[name="theme-color"]');
-            if (m) m.setAttribute('content', '#e9eef7');
+            if (m) m.setAttribute('content', BAR[palette + '-' + theme]);
           });
-        }
-      } catch (e) {}
+        } catch (e) {}
+      })();
     </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,7 +25,7 @@
     <meta name="description" content="One name for your wallet on Robinhood Chain, in your own alphabet. Independent project, not affiliated with Robinhood." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#0b1030" />
+    <meta name="theme-color" content="#14171c" />
     <meta property="og:title" content=".hood names" />
     <meta property="og:description" content="One name for your wallet on Robinhood Chain, in your own alphabet." />
     <meta property="og:image" content="/og.png" />
@@ -27,8 +33,18 @@
     <meta name="twitter:card" content="summary_large_image" />
     <style>
       /* The loading screen: the sign is put up while the site loads. */
-      #boot { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: #0b1030; transition: opacity 0.45s ease, visibility 0.45s; }
-      html[data-theme='light'] #boot { background: #e9eef7; }
+      /* palettes:boot */
+      html, html[data-palette='slate'][data-theme='dark'] { --b-bg: #14171c; --b-sign: #2b313b; --b-frame: #ccff00; --b-ink: #ffffff; --b-dot: #ccff00; --b-lit: #ccff00; --off: #2f3643; --b-glow: 204, 255, 0; }
+      html[data-palette='slate'][data-theme='light'] { --b-bg: #e7e9ec; --b-sign: #2b313b; --b-frame: #ccff00; --b-ink: #ffffff; --b-dot: #ccff00; --b-lit: #ccff00; --off: #b3bbc7; --b-glow: 204, 255, 0; }
+      html[data-palette='brass'][data-theme='dark'] { --b-bg: #1b1511; --b-sign: #f2ead9; --b-frame: #b8925f; --b-ink: #2b1f17; --b-dot: #86602f; --b-lit: #ead3a6; --off: #3a2f26; --b-glow: 217, 185, 138; }
+      html[data-palette='brass'][data-theme='light'] { --b-bg: #efe8dc; --b-sign: #f8f3e8; --b-frame: #b8925f; --b-ink: #2b1f17; --b-dot: #86602f; --b-lit: #b8925f; --off: #cfc1ab; --b-glow: 184, 146, 95; }
+      html[data-palette='enamel'][data-theme='dark'] { --b-bg: #0b1030; --b-sign: #1f3fa8; --b-frame: #ccff00; --b-ink: #ffffff; --b-dot: #ccff00; --b-lit: #ccff00; --off: #26337a; --b-glow: 204, 255, 0; }
+      html[data-palette='enamel'][data-theme='light'] { --b-bg: #e9eef7; --b-sign: #1f3fa8; --b-frame: #ccff00; --b-ink: #ffffff; --b-dot: #ccff00; --b-lit: #ccff00; --off: #aebfe0; --b-glow: 204, 255, 0; }
+      html[data-palette='claret'][data-theme='dark'] { --b-bg: #180c10; --b-sign: #5c1f2c; --b-frame: #c6a25a; --b-ink: #f7efe3; --b-dot: #e8c983; --b-lit: #e9cf8e; --off: #3d2229; --b-glow: 226, 194, 126; }
+      html[data-palette='claret'][data-theme='light'] { --b-bg: #f2ece5; --b-sign: #5c1f2c; --b-frame: #c6a25a; --b-ink: #f7efe3; --b-dot: #e8c983; --b-lit: #c6a25a; --off: #d0bab2; --b-glow: 198, 162, 90; }
+      html[data-palette='onyx'][data-theme='dark'] { --b-bg: #050505; --b-sign: #161616; --b-frame: #ccff00; --b-ink: #ffffff; --b-dot: #ccff00; --b-lit: #ccff00; --off: #2a2a2a; --b-glow: 204, 255, 0; }
+      html[data-palette='onyx'][data-theme='light'] { --b-bg: #f2f2f2; --b-sign: #111111; --b-frame: #ccff00; --b-ink: #ffffff; --b-dot: #ccff00; --b-lit: #ccff00; --off: #bdbdbd; --b-glow: 204, 255, 0; }
+      #boot { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: var(--b-bg); transition: opacity 0.45s ease, visibility 0.45s; }
       #boot .b-in { display: grid; justify-items: center; gap: 22px; transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
       #boot svg { width: 112px; height: 112px; overflow: visible; }
       #boot .frame { stroke-dasharray: 140; stroke-dashoffset: 140; animation: b-draw 0.7s cubic-bezier(0.65, 0, 0.35, 1) 0.1s forwards; }
@@ -36,10 +52,9 @@
       #boot .hair { opacity: 0; animation: b-fade 0.3s ease-out 0.75s forwards; }
       #boot .h { stroke-dasharray: 40; stroke-dashoffset: 40; animation: b-draw 0.45s ease-out 0.8s forwards; }
       #boot .dot { opacity: 0; animation: b-neon 0.6s linear 1s forwards; }
-      html[data-theme='dark'] #boot svg { filter: drop-shadow(0 0 22px rgba(204, 255, 0, 0.28)); }
+      html[data-theme='dark'] #boot svg { filter: drop-shadow(0 0 22px rgba(var(--b-glow), 0.28)); }
       #boot .wins { display: flex; gap: 8px; }
-      #boot .wins i { --off: #1f2b72; width: 10px; height: 14px; border-radius: 2px; background: var(--off); animation: b-win 1.5s steps(1) infinite; }
-      html[data-theme='light'] #boot .wins i { --off: #c6d3ec; }
+      #boot .wins i { width: 10px; height: 14px; border-radius: 2px; background: var(--off); animation: b-win 1.5s steps(1) infinite; }
       #boot .wins i:nth-child(2) { animation-delay: 0.15s; }
       #boot .wins i:nth-child(3) { animation-delay: 0.3s; }
       #boot .wins i:nth-child(4) { animation-delay: 0.45s; }
@@ -51,7 +66,7 @@
       @keyframes b-draw { to { stroke-dashoffset: 0; } }
       @keyframes b-fade { from { opacity: 0; } to { opacity: 1; } }
       @keyframes b-neon { 0% { opacity: 0; } 15% { opacity: 1; } 25% { opacity: 0.2; } 40% { opacity: 1; } 50% { opacity: 0.4; } 65%, 100% { opacity: 1; } }
-      @keyframes b-win { 0% { background: #ccff00; } 50% { background: var(--off); } }
+      @keyframes b-win { 0% { background: var(--b-lit); } 50% { background: var(--off); } }
       @media (prefers-reduced-motion: reduce) {
         #boot *, #boot { animation: none !important; transition: none !important; }
         #boot .frame, #boot .h { stroke-dashoffset: 0; }
@@ -64,11 +79,11 @@
     <div id="boot" aria-hidden="true">
       <div class="b-in">
         <svg viewBox="0 0 40 40">
-          <rect class="fill" x="2" y="5" width="36" height="30" rx="8" fill="#1F3FA8" />
-          <rect class="frame" x="2" y="5" width="36" height="30" rx="8" fill="none" stroke="#CCFF00" stroke-width="3" pathLength="140" />
-          <rect class="hair" x="6.5" y="9.5" width="27" height="21" rx="4.5" fill="none" stroke="#fff" stroke-width="1.4" />
-          <circle class="dot" cx="13.5" cy="24.5" r="3" fill="#CCFF00" />
-          <path class="h" d="M20 13.5v12.5M20 19.5c0-2 1.6-3.2 3.4-3.2s3.2 1.2 3.2 3.2V26" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" pathLength="40" />
+          <rect class="fill" x="2" y="5" width="36" height="30" rx="8" style="fill: var(--b-sign)" />
+          <rect class="frame" x="2" y="5" width="36" height="30" rx="8" fill="none" style="stroke: var(--b-frame)" stroke-width="3" pathLength="140" />
+          <rect class="hair" x="6.5" y="9.5" width="27" height="21" rx="4.5" fill="none" style="stroke: var(--b-ink)" stroke-opacity="0.85" stroke-width="1.4" />
+          <circle class="dot" cx="13.5" cy="24.5" r="3" style="fill: var(--b-dot)" />
+          <path class="h" d="M20 13.5v12.5M20 19.5c0-2 1.6-3.2 3.4-3.2s3.2 1.2 3.2 3.2V26" style="stroke: var(--b-ink)" stroke-width="3" fill="none" stroke-linecap="round" pathLength="40" />
         </svg>
         <div class="wins"><i></i><i></i><i></i><i></i><i></i></div>
       </div>

@@ -19,7 +19,9 @@ export function Confetti() {
       canvas.height = innerHeight * dpr;
     };
     resize();
-    const colors = ['#ccff00', '#ffffff', '#1f3fa8', '#e5ff80'];
+    // The colours of the sign being celebrated.
+    const css = getComputedStyle(document.documentElement);
+    const colors = ['--frame', '--sign-bg', '--sign-end', '--sign-ink'].map((v) => css.getPropertyValue(v).trim() || '#ccff00');
     const parts = Array.from({ length: 140 }, () => ({
       x: innerWidth / 2 + (Math.random() - 0.5) * 120,
       y: innerHeight * 0.38,

@@ -36,16 +36,28 @@ await page.reload();
 check((await page.locator('html').getAttribute('data-theme')) === 'light', 'light kept after a reload');
 await page.getByRole('button', { name: 'Switch to dark mode' }).click();
 
+// Colours: Slate by default, another one from the swatch, kept after a reload.
+check((await page.locator('html').getAttribute('data-palette')) === 'slate', 'Slate is the default colour');
+await page.getByRole('button', { name: /^Colour: / }).click();
+await page.getByRole('menuitemradio', { name: /Brass/ }).click();
+await page.waitForFunction(() => document.documentElement.dataset.palette === 'brass', null, { timeout: 3000 }).catch(() => {});
+const signColour = await page.evaluate(() => getComputedStyle(document.querySelector('.sign')).backgroundColor);
+check(signColour === 'rgb(242, 234, 217)', `the sign is repainted in Brass (${signColour})`);
+await page.reload();
+check((await page.locator('html').getAttribute('data-palette')) === 'brass', 'Brass kept after a reload');
+await page.getByRole('button', { name: /^Colour: / }).click();
+await page.getByRole('menuitemradio', { name: /Slate/ }).click();
+
 // The brand page and its files, and the name picture.
 await page.goto(`${BASE}/brand`);
 await page.getByRole('heading', { name: 'The .hood names brand' }).waitFor();
-for (const f of ['/brand/mark.svg', '/brand/wordmark-night.svg', '/brand/wordmark-day.svg', '/og.png', '/favicon.svg']) {
+for (const f of ['/brand/slate/mark.svg', '/brand/brass/wordmark-night.svg', '/brand/claret/wordmark-day.svg', '/og.png', '/favicon.svg']) {
   const r = await page.request.get(BASE + f);
   check(r.ok(), `${f} is served`);
 }
 const picture = await page.evaluate(async () => {
   const m = await import('/src/lib/card.ts');
-  return (await m.nameCard('sage', '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', 'light')).size;
+  return (await m.nameCard('sage', '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', 'light', 'brass')).size;
 });
 check(picture > 20_000, `the name picture is drawn (${Math.round(picture / 1024)} KB)`);
 await page.goto(`${BASE}/`);

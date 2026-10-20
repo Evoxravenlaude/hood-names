@@ -1,8 +1,6 @@
-import { flushSync } from 'react-dom';
 import { useT } from '../i18n';
-import { setTheme, useTheme } from '../lib/theme';
-
-const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+import { rememberTheme, setTheme, useTheme } from '../lib/theme';
+import { reveal } from '../lib/reveal';
 
 /**
  * Day or night on the street. The new setting opens as a circle from the
@@ -20,24 +18,9 @@ export function ThemeToggle() {
       aria-label={label}
       title={label}
       onClick={(e) => {
-        const root = document.documentElement;
-        const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
-        if (doc.startViewTransition && !reduced()) {
-          const r = e.currentTarget.getBoundingClientRect();
-          root.style.setProperty('--vt-x', `${r.left + r.width / 2}px`);
-          root.style.setProperty('--vt-y', `${r.top + r.height / 2}px`);
-          // Kept straight away; the page itself changes inside the transition.
-          try {
-            localStorage.setItem('hood-names-theme', next);
-          } catch {
-            /* kept for this visit only */
-          }
-          doc.startViewTransition(() => flushSync(() => setTheme(next)));
-          return;
-        }
-        root.classList.add('theme-fade');
-        setTheme(next);
-        setTimeout(() => root.classList.remove('theme-fade'), 400);
+        // Kept straight away; the page itself changes inside the transition.
+        rememberTheme(next);
+        reveal(e.currentTarget, () => setTheme(next));
       }}
     >
       <span className="dn-icon dn-sun" aria-hidden="true">

@@ -1,14 +1,15 @@
 import { parentName } from '../config';
-import { LAYOUT, STREET_GROUND, STREET_H, STREET_PAL, STREET_SKY, STREET_W } from '../components/Street';
+import { LAYOUT, STREET_GROUND, STREET_H, STREET_W } from '../components/Street';
 import type { Theme } from './theme';
-import { MARK_SVG } from '../components/Logo';
+import { paletteById, settingVars, type PaletteId } from './palettes';
+import { markSvg } from '../components/Logo';
 
 /**
  * A picture of a name on its sign, over the street, to save or post:
  * 1200 by 630, the size link previews use. Drawn on a canvas with the
  * site's own fonts, in the setting the reader is looking at.
  */
-export async function nameCard(label: string, address: string | undefined, theme: Theme): Promise<Blob> {
+export async function nameCard(label: string, address: string | undefined, theme: Theme, palette: PaletteId): Promise<Blob> {
   await document.fonts.ready;
   const Wd = 1200;
   const Ht = 630;
@@ -18,9 +19,11 @@ export async function nameCard(label: string, address: string | undefined, theme
   const x = c.getContext('2d')!;
   x.scale(2, 2);
   const day = theme === 'light';
-  const pal = STREET_PAL[theme];
-  const [skyTop, skyBottom] = STREET_SKY[theme];
-  const ink = day ? '#0b1030' : '#ffffff';
+  const look = paletteById(palette);
+  const pal = look[theme].street;
+  const t = settingVars(look, theme);
+  const [skyTop, skyBottom] = pal.sky;
+  const ink = t.ink;
 
   // Sky
   const g = x.createLinearGradient(0, 0, 0, Ht);
@@ -37,7 +40,7 @@ export async function nameCard(label: string, address: string | undefined, theme
   x.translate(ox, oy);
   x.scale(s, s);
   x.lineWidth = 1.6;
-  x.strokeStyle = '#0b1030';
+  x.strokeStyle = pal.stroke ?? '#000';
   x.lineJoin = 'round';
   const shape = (draw: () => void, fill: string) => {
     x.beginPath();
@@ -96,7 +99,7 @@ export async function nameCard(label: string, address: string | undefined, theme
   }
   LAYOUT.wins.forEach((w, i) => {
     const lit = LAYOUT.order.indexOf(i) % 3 === 0;
-    shape(() => x.roundRect(w.x, w.y, 20, 28, 2), lit ? '#ccff00' : !day && LAYOUT.ambient.has(i) ? '#3c4a9a' : pal.off);
+    shape(() => x.roundRect(w.x, w.y, 20, 28, 2), lit ? pal.lit[0] : !day && LAYOUT.ambient.has(i) ? pal.ambient : pal.off);
   });
   x.fillStyle = pal.ground;
   x.fillRect(-200, STREET_GROUND, STREET_W + 400, STREET_H - STREET_GROUND + 200);
@@ -120,24 +123,24 @@ export async function nameCard(label: string, address: string | undefined, theme
   const px = (Wd - pw) / 2;
   const py = 150;
   if (!day) {
-    x.shadowColor = 'rgba(204, 255, 0, 0.35)';
+    x.shadowColor = `rgba(${t['frame-rgb']}, 0.35)`;
     x.shadowBlur = 60;
   } else {
-    x.fillStyle = '#0b1030';
+    x.fillStyle = t.ink;
     x.beginPath();
     x.roundRect(px, py + 5, pw, ph, 26);
     x.fill();
   }
-  x.fillStyle = '#ccff00';
+  x.fillStyle = t.frame;
   x.beginPath();
   x.roundRect(px, py, pw, ph, 26);
   x.fill();
   x.shadowBlur = 0;
-  x.fillStyle = '#1f3fa8';
+  x.fillStyle = t['sign-bg'];
   x.beginPath();
   x.roundRect(px + 8, py + 8, pw - 16, ph - 16, 19);
   x.fill();
-  x.strokeStyle = 'rgba(255,255,255,0.92)';
+  x.strokeStyle = t['sign-hair'];
   x.lineWidth = 2.5;
   x.beginPath();
   x.roundRect(px + 17, py + 17, pw - 34, ph - 34, 12);
@@ -145,25 +148,25 @@ export async function nameCard(label: string, address: string | undefined, theme
   x.textBaseline = 'alphabetic';
   if (address) {
     x.font = '500 18px "Geist Mono Variable", ui-monospace, monospace';
-    x.fillStyle = 'rgba(255,255,255,0.72)';
+    x.fillStyle = t['sign-sub'];
     x.fillText(`${address.slice(0, 6)}…${address.slice(-4)}`, px + 48, py + 52);
   }
   x.font = font(size);
-  x.fillStyle = '#ffffff';
+  x.fillStyle = t['sign-ink'];
   const base = py + ph - 44;
   x.fillText(name, px + 48, base);
-  x.fillStyle = '#ccff00';
+  x.fillStyle = t['sign-end'];
   x.fillText(end, px + 48 + tw, base);
 
   // Wordmark, top left: the mark, then the name of the site.
   const mark = new Image();
-  mark.src = 'data:image/svg+xml,' + encodeURIComponent(MARK_SVG);
+  mark.src = 'data:image/svg+xml,' + encodeURIComponent(markSvg(palette, theme));
   await mark.decode().catch(() => undefined);
   if (mark.complete && mark.naturalWidth) x.drawImage(mark, 52, 38, 46, 46);
   const wx = 108;
   x.font = '850 30px "Archivo Variable", system-ui, sans-serif';
   ctx.fontStretch = 'expanded';
-  x.fillStyle = day ? '#1f3fa8' : '#ccff00';
+  x.fillStyle = t['accent-ink'];
   x.fillText('.', wx, 74);
   const dw = x.measureText('.').width;
   x.fillStyle = ink;
@@ -171,7 +174,7 @@ export async function nameCard(label: string, address: string | undefined, theme
   const hw = x.measureText(parentName).width;
   ctx.fontStretch = 'condensed';
   x.font = '600 19px "Archivo Variable", system-ui, sans-serif';
-  x.fillStyle = day ? '#5a6187' : '#9299bf';
+  x.fillStyle = t.faint;
   x.fillText('names', wx + dw + hw + 10, 74);
   ctx.fontStretch = 'normal';
   x.font = '500 18px "Archivo Variable", system-ui, sans-serif';
@@ -182,8 +185,8 @@ export async function nameCard(label: string, address: string | undefined, theme
 }
 
 /** Save the picture, or hand it to the phone's share sheet where there is one. */
-export async function saveNameCard(label: string, address: string | undefined, theme: Theme) {
-  const blob = await nameCard(label, address, theme);
+export async function saveNameCard(label: string, address: string | undefined, theme: Theme, palette: PaletteId) {
+  const blob = await nameCard(label, address, theme, palette);
   const file = new File([blob], `${label}.${parentName}.png`, { type: 'image/png' });
   const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
   if (nav.canShare?.({ files: [file] }) && matchMedia('(pointer: coarse)').matches) {

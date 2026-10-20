@@ -19,6 +19,7 @@ import { guardAgainstTranslators } from './lib/translateSafe';
 import { ReviewProvider } from './components/Review';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './components/Toast';
+import { installPalettes } from './lib/theme';
 // Fonts are served from this site, not a third party.
 import '@fontsource-variable/archivo/wdth.css';
 // Geist draws Cyrillic, which Archivo does not have.
@@ -31,6 +32,7 @@ const queryClient = new QueryClient({
 });
 
 guardAgainstTranslators();
+installPalettes();
 
 function NotFound() {
   const t = useT();

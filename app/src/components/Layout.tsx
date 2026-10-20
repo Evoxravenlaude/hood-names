@@ -6,6 +6,7 @@ import { useControllerInfo } from '../lib/hooks';
 import { LanguagePicker, TranslationNotice } from './Language';
 import { WalletButton } from './Wallet';
 import { ThemeToggle } from './ThemeToggle';
+import { ColourPicker } from './ColourPicker';
 import { Wordmark } from './Logo';
 
 /** The rooftops the footer sits under, the end of the street. */
@@ -36,6 +37,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <span className={'chip net' + (deployment ? '' : ' off')} translate="no"><span className="led" />{chain.name}</span>
             <LanguagePicker />
             <ThemeToggle />
+            <ColourPicker />
             <WalletButton />
           </div>
         </nav>

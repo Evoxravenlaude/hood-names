@@ -34,5 +34,7 @@ jobs:
       - run: npm ci
       - name: Check every language has every string
         run: node scripts/i18n.mjs --check
+      - name: Check every colour is readable, night and day
+        run: node scripts/palettes.mjs
       - name: Type-check and build the site
         run: npm run build

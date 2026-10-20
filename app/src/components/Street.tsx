@@ -1,7 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useT } from '../i18n';
-import { useTheme, type Theme } from '../lib/theme';
+import { usePalette, useTheme, type Theme } from '../lib/theme';
+import { paletteById, type PaletteId } from '../lib/palettes';
 import { fullName } from '../lib/names';
 
 /**
@@ -27,19 +28,6 @@ function rng(seed: number) {
   };
 }
 
-const PAL = {
-  dark: {
-    back: '#0f1745', backWin: '#26337a', face: ['#1b2566', '#1f2b72', '#18215c', '#24317c'], trim: '#0c1340',
-    off: '#0b1236', door: '#080e2e', ground: '#0b1236', kerb: '#2a3678', lamp: '#2a3678', roof: '#0c1340', cap: '#0c1340',
-  },
-  light: {
-    back: '#c6d3ec', backWin: '#aebfe0', face: ['#ffffff', '#f3f6fb', '#dde5f3', '#ffffff'], trim: '#0b1030',
-    off: '#1f3fa8', door: '#0b1030', ground: '#d5dcea', kerb: '#0b1030', lamp: '#0b1030', roof: '#1f3fa8', cap: '#0b1030',
-  },
-} as const;
-
-/** Sky colours, top to horizon; the top matches the page so the sky has no edge. */
-const SKY = { dark: ['#0b1030', '#1a2462'], light: ['#e9eef7', '#bccff0'] } as const;
 
 interface Win { x: number; y: number }
 interface Layout {
@@ -95,21 +83,24 @@ function layout(): Layout {
 }
 
 export const LAYOUT = layout();
-export { W as STREET_W, H as STREET_H, GROUND as STREET_GROUND, PAL as STREET_PAL, SKY as STREET_SKY };
+export { W as STREET_W, H as STREET_H, GROUND as STREET_GROUND };
 export const STREET_WINDOWS = LAYOUT.wins.length;
 
 export interface StreetName { label: string }
 
-export function Street({ names, className, setting }: { names: StreetName[]; className?: string; setting?: Theme }) {
+export function Street({ names, className, setting, palette }: { names: StreetName[]; className?: string; setting?: Theme; palette?: PaletteId }) {
   const t = useT();
   const current = useTheme();
   const theme = setting ?? current;
+  const currentPalette = usePalette();
+  const pal = paletteById(palette ?? currentPalette);
   const navigate = useNavigate();
-  const p = PAL[theme];
+  const p = pal[theme].street;
   const L = LAYOUT;
   const day = theme === 'light';
   const sw = day ? 1.6 : 0;
-  const stroke = day ? { stroke: '#0b1030', strokeWidth: sw, strokeLinejoin: 'round' as const } : {};
+  const ink = p.stroke ?? '#000';
+  const stroke = day ? { stroke: ink, strokeWidth: sw, strokeLinejoin: 'round' as const } : {};
 
   // Window index -> name. Newest names take the first windows in the order.
   const byWindow = useMemo(() => {
@@ -147,7 +138,7 @@ export function Street({ names, className, setting }: { names: StreetName[]; cla
   };
 
   return (
-    <div className={'street ' + (className ?? '')} data-theme-art={theme}>
+    <div className={'street ' + (className ?? '')} data-theme-art={theme} style={{ ['--glow-rgb' as string]: p.glow, ['--win-hover' as string]: day ? p.face[0] : '#ffffff' }}>
       <svg
         ref={svg}
         viewBox={`0 0 ${W} ${H}`}
@@ -166,19 +157,19 @@ export function Street({ names, className, setting }: { names: StreetName[]; cla
       >
         <defs>
           <linearGradient id={`sky${uid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={SKY[theme][0]} />
-            <stop offset="1" stopColor={SKY[theme][1]} />
+            <stop offset="0" stopColor={p.sky[0]} />
+            <stop offset="1" stopColor={p.sky[1]} />
           </linearGradient>
           <radialGradient id={`glow${uid}`}>
-            <stop offset="0" stopColor="#ccff00" stopOpacity="0.5" />
-            <stop offset="0.35" stopColor="#ccff00" stopOpacity="0.14" />
-            <stop offset="1" stopColor="#ccff00" stopOpacity="0" />
+            <stop offset="0" stopColor={`rgb(${p.glow})`} stopOpacity="0.5" />
+            <stop offset="0.35" stopColor={`rgb(${p.glow})`} stopOpacity="0.14" />
+            <stop offset="1" stopColor={`rgb(${p.glow})`} stopOpacity="0" />
           </radialGradient>
         </defs>
         <rect width={W} height={H} fill={`url(#sky${uid})`} />
         {day ? (
           <g className="sun">
-            <circle cx={W * 0.84} cy={88} r={38} fill="#ccff00" stroke="#0b1030" strokeWidth={1.6} />
+            <circle cx={W * 0.84} cy={88} r={38} fill={p.orb} stroke={ink} strokeWidth={1.6} />
           </g>
         ) : (
           <>
@@ -186,8 +177,8 @@ export function Street({ names, className, setting }: { names: StreetName[]; cla
               {L.stars.map((s, i) => <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#fff" opacity={s.o} />)}
             </g>
             <g className="moon">
-              <circle cx={W * 0.84} cy={72} r={24} fill="#f2f4ff" />
-              <circle cx={W * 0.84 + 10} cy={65} r={22} fill={SKY.dark[0]} />
+              <circle cx={W * 0.84} cy={72} r={24} fill={p.orb} />
+              <circle cx={W * 0.84 + 10} cy={65} r={22} fill={p.sky[0]} />
             </g>
           </>
         )}
@@ -216,7 +207,7 @@ export function Street({ names, className, setting }: { names: StreetName[]; cla
                 )}
                 <rect x={dx} y={GROUND - 54} width={30} height={54} rx={0} fill={p.door} {...stroke} />
                 <path d={`M${dx} ${GROUND - 40} a15 15 0 0 1 30 0`} fill={p.door} {...stroke} />
-                <rect x={dx - 4} y={GROUND - 74} width={38} height={12} rx={2.5} fill="#1f3fa8" stroke="#ccff00" strokeWidth={1.6} />
+                <rect x={dx - 4} y={GROUND - 74} width={38} height={12} rx={2.5} fill={p.doorSign[0]} stroke={p.doorSign[1]} strokeWidth={1.6} />
               </g>
             );
           })}
@@ -237,7 +228,7 @@ export function Street({ names, className, setting }: { names: StreetName[]; cla
                   width={20}
                   height={28}
                   rx={2}
-                  fill={day ? '#ccff00' : k % 5 === 0 ? '#ffffff' : '#ccff00'}
+                  fill={k % 5 === 0 ? p.lit[1] : p.lit[0]}
                   style={firstWave ? { animationDelay: `${Math.min(1.4, 0.25 + k * 0.03)}s` } : undefined}
                   {...stroke}
                 />
@@ -251,7 +242,7 @@ export function Street({ names, className, setting }: { names: StreetName[]; cla
                   width={20}
                   height={28}
                   rx={2}
-                  fill={!day && L.ambient.has(i) ? '#3c4a9a' : p.off}
+                  fill={!day && L.ambient.has(i) ? p.ambient : p.off}
                   {...stroke}
                 />
                 {day && <path d={`M${w.x + 4} ${w.y + 20} l8 -14`} stroke="#fff" strokeWidth={2} strokeLinecap="round" opacity={0.7} />}
@@ -265,7 +256,7 @@ export function Street({ names, className, setting }: { names: StreetName[]; cla
           <g key={x}>
             <rect x={x - 2} y={GROUND - 150} width={4} height={150} fill={p.lamp} />
             <rect x={x - 10} y={GROUND - 158} width={20} height={10} rx={3} fill={p.lamp} />
-            <rect x={x - 6} y={GROUND - 149} width={12} height={4} rx={2} fill={day ? '#ffffff' : '#ccff00'} {...(day ? { stroke: '#0b1030', strokeWidth: 1.2 } : {})} />
+            <rect x={x - 6} y={GROUND - 149} width={12} height={4} rx={2} fill={p.bulb} {...(day ? { stroke: ink, strokeWidth: 1.2 } : {})} />
           </g>
         ))}
       </svg>
