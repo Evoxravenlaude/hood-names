@@ -8,14 +8,42 @@ A name is 3 to 63 characters, in one of these alphabets:
 
 | Alphabet | Example | Notes |
 | --- | --- | --- |
-| Latin | `alice`, `café`, `straße` | Letters with accents are accepted |
+| Latin | `alice`, `café`, `straße`, `ọmọ` | Letters with accents are accepted, including Yoruba and Igbo dotted letters |
 | Cyrillic | `привет` | |
 | Greek | `ελλάδα` | |
 | Chinese (Han) | `東京都` | |
 | Japanese | `こんにちは`, `東京タワー` | Hiragana, katakana and kanji may be combined |
 | Korean | `서울특별시` | Hangul, optionally with Han |
+| Devanagari | `नमस्ते` | Hindi, Marathi, Nepali |
+| Bengali | `বাংলা` | Bengali, Assamese |
+| Gurmukhi | `ਪੰਜਾਬ` | Punjabi |
+| Gujarati | `ગુજરાત` | |
+| Odia | `ଓଡ଼ିଆ` | |
+| Tamil | `தமிழ்` | |
+| Telugu | `తెలుగు` | |
+| Kannada | `ಕನ್ನಡ` | |
+| Malayalam | `മലയാളം` | |
+| Sinhala | `සිංහල` | |
+| Thai | `สวัสดี` | |
+| Lao | `ສະບາຍດີ` | |
+| Georgian | `გამარჯობა` | |
+| Armenian | `բարեւ` | |
+| Ethiopic | `ሰላም` | Amharic, Tigrinya |
+| Arabic | `مرحبا` | Arabic, Persian, Urdu. Letters only |
+| Hebrew | `שלום` | Letters only |
 
-Digits and hyphens can be used with any of them. Not accepted: emoji, symbols, invisible characters, and alphabets not listed above (Arabic, Hebrew, Thai, Devanagari and others, and Vietnamese letters that need stacked accents). More can be added later without affecting existing names.
+Digits and hyphens can be used with any of them except Arabic and Hebrew. Those are written right to left while digits and hyphens are laid out left to right, so `مرحبا123` and `123مرحبا` look identical next to `.hood`; a right-to-left name is letters only.
+
+The alphabets from Devanagari down were added after launch, appended to the sealed name rules, which accept only additions that leave every existing name exactly as it was. Nothing registered before changed.
+
+Two groups of them need rules that only version 2 of the name rules contract has:
+
+- **Scripts written with combining marks** (the Indic scripts, Thai, Lao). Vowel signs and tone marks can be typed in more than one order, or doubled, and still draw the same, so version 2 accepts marks only in Unicode's canonical order, never at the start of a name or straight after a digit or hyphen, and never the same mark twice in a row.
+- **Right-to-left scripts** (Arabic, Hebrew): letters only, as above.
+
+The testnet still runs version 1, so there it accepts Georgian, Armenian and Ethiopic in addition to the six launch alphabets. The rest arrive with the next deployment of the name rules: mainnet, or a fresh testnet deployment.
+
+Not accepted: emoji, symbols, invisible characters, the Latin letters used for Hausa, Akan, Ewe and similar languages that ENS-compatible wallets refuse (`ɓ`, `ɗ`, `ɛ`, `ɔ`, `ŋ`; a name using them would not work in wallets), and alphabets not listed above (Khmer, Myanmar, Tibetan and others).
 
 Other rules:
 
@@ -50,6 +78,8 @@ Automated lookalike detection is never complete. These pairs are **not** caught 
 - Katakana ソ and ン.
 - Letter pairs that only look alike in some fonts, such as `cl` and `d`.
 - Digit-for-letter swaps beyond `0`/`o` and `1`/`l`, such as `5` for `s`.
+- In the Indic alphabets, sequences of vowel signs that draw alike but are not in the Unicode Standard's "do not use" tables. The listed ones are caught: Devanagari `ओ` and `अो` are one name, as are Thai `แ` and `เเ`, and a two-part vowel sign and its two parts.
+- A name spelled the long way (`अोम्` for `ओम्`) is priced as the shorter name it looks like, with a few exceptions priced by their own length: Gurmukhi `ਇ`, `ਈ`, `ਏ` and Devanagari `ँ` spelled out, and lookalikes that another script could also spell (Gurmukhi `ੲ` draws like Devanagari `प्ट`; counting it would make ordinary Hindi words cheaper). The two spellings still cannot both be registered.
 
 The rule also over-blocks on purpose: whoever registers `modern` blocks `modem`.
 

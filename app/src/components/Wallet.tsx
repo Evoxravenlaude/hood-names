@@ -5,8 +5,10 @@ import { chain } from '../config';
 import { shortAddress } from '../lib/format';
 import { usePrimaryName } from '../lib/hooks';
 import { Avatar } from './Avatar';
+import { useT } from '../i18n';
 
 export function WalletButton() {
+  const t = useT();
   const { address, isConnected, chainId, status } = useAccount();
   const { connectors, connect, isPending, error } = useConnect();
   const { disconnect } = useDisconnect();
@@ -32,7 +34,7 @@ export function WalletButton() {
   if (isConnected && chainId !== chain.id) {
     return (
       <button type="button" className="btn btn-dark" onClick={() => switchChain({ chainId: chain.id })}>
-        Switch to {chain.name}
+        {t('Switch to {network}', { network: chain.name })}
       </button>
     );
   }
@@ -40,15 +42,15 @@ export function WalletButton() {
   if (isConnected && address) {
     return (
       <div className="wallet" ref={ref}>
-        <button type="button" className="btn btn-plain mono" aria-expanded={open} onClick={() => setOpen(!open)} style={{ paddingLeft: primary.data ? 8 : undefined }}>
+        <button type="button" className={'btn btn-plain' + (primary.data ? ' nameface' : ' mono')} translate="no" aria-expanded={open} onClick={() => setOpen(!open)} style={{ paddingLeft: primary.data ? 8 : undefined }}>
           {primary.data && primary.data.split('.').length === 2 && <Avatar label={primary.data.split('.')[0]} size={28} />}
           {primary.data ?? shortAddress(address)}
         </button>
         {open && (
           <div className="menu" role="menu">
-            <span className="small faint mono" style={{ padding: '8px 12px' }}>{shortAddress(address)}</span>
-            <Link role="menuitem" to="/names" onClick={() => setOpen(false)}>My names</Link>
-            <button role="menuitem" type="button" onClick={() => { disconnect(); setOpen(false); }}>Disconnect</button>
+            <span className="small faint mono" style={{ padding: '8px 12px' }} translate="no">{shortAddress(address)}</span>
+            <Link role="menuitem" to="/names" onClick={() => setOpen(false)}>{t('My names')}</Link>
+            <button role="menuitem" type="button" onClick={() => { disconnect(); setOpen(false); }}>{t('Disconnect')}</button>
           </div>
         )}
       </div>
@@ -60,7 +62,7 @@ export function WalletButton() {
   if (status === 'reconnecting')
     return (
       <button type="button" className="btn btn-plain" disabled>
-        Connecting…
+        {t('Connecting…')}
       </button>
     );
 
@@ -71,7 +73,7 @@ export function WalletButton() {
   return (
     <div className="wallet" ref={ref}>
       <button type="button" className="btn btn-dark" disabled={isPending} aria-expanded={open} onClick={() => setOpen(!open)}>
-        {isPending ? 'Connecting…' : 'Connect wallet'}
+        {isPending ? t('Connecting…') : t('Connect wallet')}
       </button>
       {open && (
         <div className="menu" role="menu">
@@ -86,13 +88,13 @@ export function WalletButton() {
               }}
             >
               {c.icon && <img src={c.icon} alt="" />}
-              {c.id === 'injected' ? 'Browser wallet' : c.name}
+              {c.id === 'injected' ? t('Browser wallet') : c.name}
             </button>
           ))}
           <span className="small faint" style={{ padding: '8px 12px', lineHeight: 1.45 }}>
-            Connecting only shares your wallet address with this site. Nothing is signed or sent until you confirm a step.
+            {t('Connecting only shares your wallet address with this site. Nothing is signed or sent until you confirm a step.')}
           </span>
-          {!choices.length && <span className="small faint" style={{ padding: 12 }}>No browser wallet found. Install one such as MetaMask or Rabby.</span>}
+          {!choices.length && <span className="small faint" style={{ padding: 12 }}>{t('No browser wallet found. Install one such as MetaMask or Rabby.')}</span>}
           {error && <span className="small" style={{ padding: 12, color: 'var(--warn)' }}>{error.message.split('\n')[0]}</span>}
         </div>
       )}
@@ -102,9 +104,10 @@ export function WalletButton() {
 
 /** Shown in place of an action that needs a wallet. */
 export function ConnectPrompt({ what }: { what: string }) {
+  const t = useT();
   return (
     <div className="notice info">
-      <p>Connect a wallet to {what}.</p>
+      <p>{t('Connect a wallet to {what}.', { what })}</p>
       <WalletButton />
     </div>
   );

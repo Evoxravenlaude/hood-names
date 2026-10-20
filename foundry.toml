@@ -9,7 +9,7 @@ evm_version = "paris"
 optimizer = true
 optimizer_runs = 1200
 bytecode_hash = "none"
-fs_permissions = [{ access = "read-write", path = "./deployments" }, { access = "read", path = "./reserved" }, { access = "read", path = "./nametables" }]
+fs_permissions = [{ access = "read-write", path = "./deployments" }, { access = "read", path = "./reserved" }, { access = "read", path = "./nametables" }, { access = "read", path = "./test/fixtures" }]
 
 [rpc_endpoints]
 robinhood = "https://rpc.mainnet.chain.robinhood.com"

@@ -1,0 +1,34 @@
+{
+ "id": 3,
+ "title": "Right-to-left alphabets",
+ "requiresVersion": 2,
+ "pageFiles": [
+  "nametables/ext-3/page-0.hex"
+ ],
+ "pageFirst": [
+  1488
+ ],
+ "groups": [
+  8388608,
+  16777216
+ ],
+ "probe": "مرحبا",
+ "patterns": [],
+ "unpricedLookalikes": 0,
+ "scripts": [
+  {
+   "id": 23,
+   "name": "Arabic",
+   "languages": "Arabic, Persian, Urdu",
+   "rtl": true,
+   "characters": 131
+  },
+  {
+   "id": 24,
+   "name": "Hebrew",
+   "languages": "Hebrew",
+   "rtl": true,
+   "characters": 28
+  }
+ ]
+}

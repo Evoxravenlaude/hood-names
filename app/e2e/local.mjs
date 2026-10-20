@@ -95,6 +95,18 @@ try {
   await expectText('sage.hood, which is registered');
   await shot('search-lookalike');
 
+  step('Added alphabets');
+  await page.goto(`${BASE}/?q=${encodeURIComponent('नमस्ते')}`);
+  await expectText('is free to register');
+  await page.goto(`${BASE}/?q=${encodeURIComponent('मरहबा')}`);
+  await expectText('is free to register');
+  await page.goto(`${BASE}/?q=${encodeURIComponent('مرحبا')}`);
+  await expectText('is free to register');
+  await page.goto(`${BASE}/?q=${encodeURIComponent('مرحبا1')}`); // right to left: letters only
+  await expectText('Not allowed');
+  await page.goto(`${BASE}/?q=${encodeURIComponent('अोम्')}`); // drawn like ओम्, which is free: allowed
+  await expectText('is free to register');
+
   step('Test tokens: claim tUSD, then the cooldown');
   await page.goto(`${BASE}/faucet`);
   await connect();
@@ -117,7 +129,7 @@ try {
   await page.locator('input[type=file]').setInputFiles(new URL('./avatar.png', import.meta.url).pathname);
   await expectText('Picture ready');
   await page.getByRole('button', { name: 'Save changes' }).click();
-  await page.getByRole('dialog').getByText('Set the avatar of sage.hood to an uploaded image').waitFor();
+  await page.getByRole('dialog').getByText('Set the profile picture of sage.hood to an uploaded image').waitFor();
   await approve('Save 3 record changes', 'review-records');
   await expectText('Saved.', 60_000);
   await page.reload();
@@ -176,6 +188,14 @@ try {
   await expectText('Renewed sage.hood');
   await expectText('Gift cards redeemed');
   await shot('points-activity');
+
+  step('Stats');
+  await page.goto(`${BASE}/stats`);
+  await expectText('names so far');
+  await expectText('When people use Hood Names');
+  await page.getByText('Which alphabets names use').click();
+  await expectText('Cyrillic');
+  await shot('stats');
 
   step('Phone width');
   await page.setViewportSize({ width: 390, height: 844 });

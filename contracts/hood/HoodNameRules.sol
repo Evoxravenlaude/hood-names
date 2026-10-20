@@ -27,7 +27,11 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 ///  - anything that reads like a wallet address is refused;
 ///  - only lowercase, composed forms are accepted. Interfaces lowercase and
 ///    normalise what the user types, as ENS interfaces do, so "Alice" and
-///    "alice" are the same name.
+///    "alice" are the same name. For scripts written with combining marks
+///    (vowel signs, tone marks), version 2 also requires the marks in
+///    Unicode's canonical order, not at the start of a name or after a
+///    digit or hyphen, and not the same mark twice in a row, so a name
+///    cannot be spelled a second way that draws identically.
 ///
 /// A name is priced by the shortest name that shares its look. "vvvvvv"
 /// has the skeleton of "www", so it is priced as three characters.
@@ -37,19 +41,41 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 /// tools/gen-name-tables.mjs. Once sealed, the tables can only grow in ways
 /// that leave every existing label exactly as it was: a new page may not
 /// contain a character that already resolves, a new range may not overlap
-/// an existing one, and a new script group may not include a script that
-/// is already in use.
+/// an existing one, a new script group may not include a script that is
+/// already in use, and a new pricing pattern must begin with a code no
+/// launch skeleton contains.
+///
+/// Version 2 adds three rules for alphabets added after launch:
+///  - combining marks in canonical order only (see above);
+///  - letters marked right-to-left (Arabic, Hebrew) may not share a label
+///    with digits or hyphens. Those are laid out left to right, so
+///    "abc123" and "123abc" in Arabic letters display identically;
+///  - pricing patterns for added characters, so a name spelled the long
+///    way (Devanagari "अ" + "ो" for "ओ") is priced like the shorter name
+///    it looks like.
 contract HoodNameRules is Ownable2Step {
+    /// @notice 2: combining marks, right-to-left letters, and pricing
+    ///         patterns after sealing.
+    uint256 public constant VERSION = 2;
     uint256 public constant MIN_LENGTH = 3;
     uint256 public constant MAX_LENGTH = 63;
     /// @dev The name wrapper and DNS encoding hold a label's length in one byte.
     uint256 public constant MAX_BYTES = 255;
 
-    /// @dev Record layout: codepoint (3 bytes), script byte (1: low 7 bits
-    ///      the script id, top bit set for a weak fold), prototype length
-    ///      (1), prototype (8, UTF-8, left-aligned).
+    /// @dev Record layout: codepoint (3 bytes), script byte (1: low 5 bits
+    ///      the script id, bit 5 set for a combining mark, bit 6 for a
+    ///      right-to-left letter, the top bit for a weak fold), length byte
+    ///      (1: low 4 bits the prototype length, high 4 bits the mark's
+    ///      canonical-order rank, 0 for none), prototype (8, UTF-8,
+    ///      left-aligned). Launch records use none of the flags.
     uint256 private constant RECORD = 13;
     uint256 private constant WEAK = 0x80;
+    uint256 private constant RTL = 0x40;
+    uint256 private constant MARK = 0x20;
+    uint256 private constant SCRIPT_ID = 0x1f;
+    /// @dev At most this many pattern pages may be added after sealing, so
+    ///      pricing a name stays cheap.
+    uint256 private constant MAX_EXTENSION_PATTERN_PAGES = 8;
     /// @dev An address-like skeleton is "ox" plus at least this many hex digits.
     uint256 private constant ADDRESS_LIKE_MIN = 8;
 
@@ -77,6 +103,9 @@ contract HoodNameRules is Ownable2Step {
     ///      where a pattern may actually begin.
     address private patternPage;
     uint256 private patternFilter;
+    /// @notice Pricing patterns added after sealing, for added characters.
+    address[] public extensionPatternPages;
+    uint256 private extensionPatternFilter;
     /// @notice Set once the launch tables are loaded. From then on additions
     ///         are checked so they cannot alter any existing label.
     bool public isSealed;
@@ -89,10 +118,13 @@ contract HoodNameRules is Ownable2Step {
     error BadGroup();
     error DeployFailed();
     error Sealed();
+    error NotSealed();
+    error TooManyPatternPages();
 
     event PageAdded(address indexed page, uint256 records);
     event RangeAdded(uint24 start, uint24 end, uint8 script);
     event GroupAdded(uint256 mask);
+    event ExtensionPatternsAdded(address indexed page, uint256 patterns);
 
     constructor(uint256 _latinBit) {
         latinBit = _latinBit;
@@ -124,14 +156,10 @@ contract HoodNameRules is Ownable2Step {
             uint256 cp = (uint256(uint8(data[o])) << 16) |
                 (uint256(uint8(data[o + 1])) << 8) |
                 uint256(uint8(data[o + 2]));
-            uint256 plen = uint8(data[o + 4]);
-            // Strictly ascending, a sane prototype, a real script id.
-            if (
-                (i != 0 && cp <= previous) ||
-                plen == 0 ||
-                plen > 8 ||
-                (uint8(data[o + 3]) & 0x7f) > 31
-            ) revert BadRecord(i);
+            uint256 plen = uint8(data[o + 4]) & 0x0f;
+            // Strictly ascending and a sane prototype. (The script id is
+            // five bits, so it is always a real one.)
+            if ((i != 0 && cp <= previous) || plen == 0 || plen > 8) revert BadRecord(i);
             if (isSealed) {
                 (bool found, , , ) = _lookupIn(tables, cp);
                 if (found) revert AlreadyResolves(cp);
@@ -192,6 +220,48 @@ contract HoodNameRules is Ownable2Step {
         patternFilter = filter;
     }
 
+    /// @notice After sealing: pricing patterns for characters added since,
+    ///         each two to seven bytes. A pattern must begin with a code
+    ///         point in U+0080..U+017F. No launch prototype uses those (the
+    ///         letters there fold to plain ASCII), so a pattern cannot match
+    ///         inside the skeleton of a name that was allowed at launch, and
+    ///         no launch name is repriced. Add a character's patterns in the
+    ///         same transaction batch as the character, before any name
+    ///         using it can be registered.
+    function addExtensionPatterns(bytes[] calldata _patterns) external onlyOwner {
+        if (!isSealed) revert NotSealed();
+        if (_patterns.length == 0) revert EmptyPage();
+        bytes memory data = new bytes(1 + _patterns.length * 8);
+        uint256 filter;
+        for (uint256 i = 0; i < _patterns.length; i++) {
+            bytes calldata pat = _patterns[i];
+            uint256 len = pat.length;
+            uint256 b0 = len > 1 ? uint8(pat[0]) : 0;
+            uint256 b1 = len > 1 ? uint8(pat[1]) : 0;
+            if (len < 3 || len > 7 || b0 < 0xc2 || b0 > 0xc5 || b1 & 0xc0 != 0x80 || !_wholeCharacters(pat))
+                revert BadRecord(i);
+            data[1 + i * 8] = bytes1(uint8(len));
+            for (uint256 j = 0; j < len; j++) data[2 + i * 8 + j] = pat[j];
+            filter |= 1 << _pairSlot(b0, b1);
+        }
+        if (extensionPatternPages.length >= MAX_EXTENSION_PATTERN_PAGES) revert TooManyPatternPages();
+        address page = _deploy(data);
+        extensionPatternPages.push(page);
+        extensionPatternFilter |= filter;
+        emit ExtensionPatternsAdded(page, _patterns.length);
+    }
+
+    /// @dev True if `b` is well-formed UTF-8 that ends on a character boundary.
+    function _wholeCharacters(bytes calldata b) private pure returns (bool) {
+        uint256 i;
+        while (i < b.length) {
+            (, uint256 size) = _decode(b, i);
+            if (size == 0) return false;
+            i += size;
+        }
+        return true;
+    }
+
     function _pairSlot(uint256 first, uint256 second) private pure returns (uint256) {
         return (first * 31 + second) & 0xff;
     }
@@ -233,6 +303,13 @@ contract HoodNameRules is Ownable2Step {
         uint256 skelLen;
         uint256 mask;
         uint256 count;
+        // A right-to-left letter, and a digit or hyphen, have been seen.
+        bool rtl;
+        bool common;
+        // The previous character, for the rules on combining marks.
+        uint256 prevCp;
+        uint256 prevRank;
+        bool prevCommon;
         // Every letter so far is an exact double of a plain ASCII character.
         bool exact;
         // The table pages, read into memory once per label.
@@ -265,6 +342,7 @@ contract HoodNameRules is Ownable2Step {
         }
         if (s.count < MIN_LENGTH || !_scriptsAllowed(s.mask, s.exact))
             return (false, none, 0);
+        if (s.rtl && s.common) return (false, none, 0);
 
         bytes memory skel = s.skel;
         uint256 skelLen = s.skelLen;
@@ -283,7 +361,21 @@ contract HoodNameRules is Ownable2Step {
             cp
         );
         if (!found) return false;
-        uint256 script = scriptByte & 0x7f;
+        uint256 script = scriptByte & SCRIPT_ID;
+        uint256 rank = plen >> 4;
+        plen &= 0x0f;
+        if (scriptByte & RTL != 0) s.rtl = true;
+        if (scriptByte & MARK != 0) {
+            // A mark needs a letter to sit on, may not repeat, and marks
+            // that stack must come in canonical order: otherwise one name
+            // could be typed a second way that draws the same.
+            if (s.count == 0 || s.prevCommon || cp == s.prevCp) return false;
+            if (rank != 0 && s.prevRank > rank) return false;
+        }
+        s.prevCp = cp;
+        s.prevRank = rank;
+        s.prevCommon = script == 0;
+        if (script == 0) s.common = true;
         bool ascii = true;
         for (uint256 k = 0; k < plen; k++) {
             bytes1 c = proto[k];
@@ -343,8 +435,10 @@ contract HoodNameRules is Ownable2Step {
     ///      multi-character prototype counts once.
     function _units(bytes memory skel) internal view returns (uint256 n) {
         uint256 filter = patternFilter;
+        uint256 extFilter = extensionPatternFilter;
         uint256 len = skel.length;
         bytes memory pats;
+        bytes[] memory extPats;
         uint256 count;
         uint256 i;
         unchecked {
@@ -383,10 +477,55 @@ contract HoodNameRules is Ownable2Step {
                         }
                     }
                 }
+                // Patterns for added characters all begin with a two-byte
+                // code in U+0080..U+017F. They are not sorted, so the longest
+                // match is taken.
+                if (
+                    step == 0 &&
+                    b0 >= 0xc2 &&
+                    b0 <= 0xc5 &&
+                    i + 1 < len &&
+                    extFilter & (1 << _pairSlot(b0, uint8(skel[i + 1]))) != 0
+                ) {
+                    if (extPats.length == 0) {
+                        uint256 p = extensionPatternPages.length;
+                        extPats = new bytes[](p);
+                        for (uint256 k = 0; k < p; k++) extPats[k] = extensionPatternPages[k].code;
+                    }
+                    uint256 left = len - i;
+                    uint256 window;
+                    assembly {
+                        window := shr(200, mload(add(add(skel, 32), i)))
+                    }
+                    for (uint256 k = 0; k < extPats.length; k++) {
+                        uint256 best = _longestMatch(extPats[k], window, left);
+                        if (best > step) step = best;
+                    }
+                }
                 if (step == 0)
                     step = b0 < 0x80 ? 1 : b0 < 0xe0 ? 2 : b0 < 0xf0 ? 3 : 4;
                 i += step;
                 n++;
+            }
+        }
+    }
+
+    /// @dev Length of the longest pattern in `pats` that `window` (the next
+    ///      seven bytes of a skeleton, of which `left` are real) begins with.
+    function _longestMatch(
+        bytes memory pats,
+        uint256 window,
+        uint256 left
+    ) private pure returns (uint256 best) {
+        assembly {
+            let at := add(pats, 33)
+            let end := add(at, mul(div(sub(mload(pats), 1), 8), 8))
+            for {} lt(at, end) { at := add(at, 8) } {
+                let record := shr(192, mload(at))
+                let pl := shr(56, record)
+                if or(gt(pl, left), iszero(gt(pl, best))) { continue }
+                let shift := mul(sub(7, pl), 8)
+                if eq(shr(shift, and(record, 0xffffffffffffff)), shr(shift, window)) { best := pl }
             }
         }
     }

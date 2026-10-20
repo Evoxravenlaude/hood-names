@@ -1,6 +1,18 @@
 # Web app
 
-The site for registering and managing names: search, register (paying with ETH, a dollar stablecoin or gift-card points), my names, records and a profile picture, subnames, renew, send, check a name before paying it, gift cards, and a test-token page on testnet.
+The site for registering and managing names: search, register (paying with ETH, a dollar stablecoin or gift-card points), my names, records and a profile picture, subnames, renew, send, check a name before paying it, gift cards, stats, and a test-token page on testnet.
+
+## Languages
+
+The site is in English, French, Spanish, Portuguese, German, Turkish, Russian, Hindi, Indonesian, Chinese, Japanese and Korean. The language menu in the header always lists English first, under its own name, so it can be found from any language. The first visit follows the browser's language when it is one of these.
+
+Strings are written in English in the code, inside `t('…')` (or `mark('…')` for tables of messages). `node scripts/i18n.mjs` collects them into `src/i18n/locales/en.json` and reports what each language is missing; a missing string shows in English. `--check` fails on gaps, on placeholders that differ from the English, and on English text left outside `t()`.
+
+Browser translators (Chrome's Translate) rewrite the page's text in a way React cannot follow: text the site later changes stops updating, so a search result could keep showing the previous name. The site guards against this: names, addresses and amounts are marked `translate="no"`, the page is protected from the crash this otherwise causes, a notice offers the site's own version of the language when it sees a translated page, and once someone picks a language in the menu the browser's translator is switched off for the site.
+
+## Stats
+
+`/stats` works out its figures in the browser from the contracts' public events (through the explorer's log API, or the RPC), so there is no server or indexer to trust: registrations, the share of names that point to a wallet, renewal when due, names coming back and when, when people are most active (by weekday and hour, in the viewer's time zone), alphabets, name lengths, how names are spread across wallets, how people pay, reserved names and gift cards. Headline figures come first; the rest is behind "More detail".
 
 ## Readable transactions
 
@@ -35,9 +47,10 @@ From the repository root, with Foundry installed:
 app/e2e/setup-local.sh                       # local chain with everything deployed
 cd app && VITE_CHAIN_ID=31337 npm run dev    # in another terminal
 CHROMIUM=/path/to/chrome node e2e/local.mjs  # optional: the end-to-end test
+CHROMIUM=/path/to/chrome node e2e/languages.mjs  # optional: language switching
 ```
 
-The end-to-end test drives the real site in a browser with a stand-in wallet: it registers two names (ETH and the test dollar), checks reserved and lookalike names, saves records, creates a subname, buys and redeems a gift card, renews, and checks a name.
+The end-to-end test drives the real site in a browser with a stand-in wallet: it registers two names (ETH and the test dollar), checks reserved and lookalike names and the added alphabets, saves records, creates a subname, buys and redeems a gift card, renews, checks a name and opens the stats. The language test switches to French, Japanese and Hindi and back to English, reloads, and imitates a browser translator to check the site notices it and keeps names updating.
 
 To use your own wallet against the local chain, add network `http://127.0.0.1:8545`, chain id 31337, and import one of anvil's test keys.
 

@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { encodeEventTopics, erc20Abi, pad, type Address, type Hex, zeroAddress } from 'viem';
-import { useAccount, usePublicClient, useReadContract } from 'wagmi';
-import { baseRegistrarAbi, controllerAbi, lensAbi, pointsLedgerAbi, registryAbi, resolverAbi, reverseRegistrarAbi, testUsdAbi } from '../abi';
+import { useAccount, usePublicClient, useReadContract, useReadContracts } from 'wagmi';
+import { baseRegistrarAbi, controllerAbi, guardAbi, lensAbi, pointsLedgerAbi, registryAbi, resolverAbi, reverseRegistrarAbi, testUsdAbi } from '../abi';
 import { deployment, modules } from '../config';
 import { decode, fetchLogs } from './logs';
 import { fullName, labelhash, nodeOf, parseLabel, rememberAddressName } from './names';
 import { rememberToken } from './describe';
 import { toAddress } from './format';
+import { ALPHABETS } from './scripts';
+import { t } from '../i18n';
 
 export const STATES = ['Available', 'Active', 'Grace', 'Reserved', 'Invalid', 'Similar'] as const;
 export type NameState = (typeof STATES)[number];
@@ -68,6 +70,8 @@ export interface Registered {
   owner: Address;
   block: bigint;
   tx: Hex;
+  /** Seconds, when the log source gives it. */
+  timestamp?: number;
 }
 
 /** Every registration seen, by transaction: lets activity say which name a payment was for. */
@@ -89,7 +93,7 @@ export function useRegisteredLabels() {
         if (!ev || ev.eventName !== 'NameRegistered') continue;
         const a = ev.args as { label: string; labelhash: Hex; owner: Address };
         registrationsByTx.set(log.transactionHash.toLowerCase(), a.label);
-        map.set(a.labelhash, { label: a.label, labelhash: a.labelhash, owner: a.owner, block: log.blockNumber, tx: log.transactionHash });
+        map.set(a.labelhash, { label: a.label, labelhash: a.labelhash, owner: a.owner, block: log.blockNumber, tx: log.transactionHash, timestamp: log.timestamp });
       }
       return map;
     },
@@ -240,9 +244,13 @@ export function useRecipient(input: string): Recipient {
   if (!status.data) return { loading: true, name: label && fullName(label) };
   const s = status.data;
   const name = fullName(label!);
-  if (s.state !== 'Active') return { name, error: `${name} is not a registered name.`, loading: false };
+  if (s.state !== 'Active') return { name, error: t('{name} is not a registered name.', { name }), loading: false };
   if (s.resolvedAddress === zeroAddress)
-    return { name, error: `${name} does not point to a wallet${s.customResolver ? ' this page can read' : ''}.`, loading: false };
+    return {
+      name,
+      error: s.customResolver ? t('{name} does not point to a wallet this page can read.', { name }) : t('{name} does not point to a wallet.', { name }),
+      loading: false,
+    };
   rememberAddressName(s.resolvedAddress, name);
   return { address: s.resolvedAddress, name, loading: false };
 }
@@ -289,15 +297,15 @@ export function usePointsActivity(account: Address | undefined) {
         fetchLogs(client!, deployment!.HoodRegistrarController, [encodeEventTopics({ abi: controllerAbi, eventName: 'NameRenewed' })[0]], from),
       ]);
       const byTx = new Map<string, string>();
-      for (const [tx, label] of registrationsByTx) byTx.set(tx, `Registered ${fullName(label)}`);
+      for (const [tx, label] of registrationsByTx) byTx.set(tx, t('Registered {name}', { name: fullName(label) }));
       for (const l of renewals) {
         const ev = decode(controllerAbi, l);
-        if (ev?.eventName === 'NameRenewed') byTx.set(l.transactionHash.toLowerCase(), `Renewed ${fullName((ev.args as { label: string }).label)}`);
+        if (ev?.eventName === 'NameRenewed') byTx.set(l.transactionHash.toLowerCase(), t('Renewed {name}', { name: fullName((ev.args as { label: string }).label) }));
       }
       const rows: Activity[] = [];
       for (const l of ins) {
         const ev = decode(pointsLedgerAbi, l);
-        if (ev) rows.push({ kind: 'credit', amount: (ev.args as { amount: bigint }).amount, what: 'Gift cards redeemed', tx: l.transactionHash, block: l.blockNumber, timestamp: l.timestamp });
+        if (ev) rows.push({ kind: 'credit', amount: (ev.args as { amount: bigint }).amount, what: t('Gift cards redeemed'), tx: l.transactionHash, block: l.blockNumber, timestamp: l.timestamp });
       }
       for (const l of outs) {
         const ev = decode(pointsLedgerAbi, l);
@@ -305,7 +313,7 @@ export function usePointsActivity(account: Address | undefined) {
           rows.push({
             kind: 'spend',
             amount: (ev.args as { amount: bigint }).amount,
-            what: byTx.get(l.transactionHash.toLowerCase()) ?? 'Spent on a name',
+            what: byTx.get(l.transactionHash.toLowerCase()) ?? t('Spent on a name'),
             tx: l.transactionHash,
             block: l.blockNumber,
             timestamp: l.timestamp,
@@ -325,4 +333,17 @@ export function useCountdown(until: bigint | number | undefined) {
   }, []);
   if (!until) return 0;
   return Math.max(0, Number(until) - now);
+}
+
+/**
+ * Which alphabets this deployment accepts, asked of its name rules (through
+ * the guard) with each alphabet's example name. Alphabets added after a
+ * deployment went live show up here as soon as they are applied.
+ */
+export function useAlphabets() {
+  const q = useReadContracts({
+    contracts: ALPHABETS.map((a) => ({ address: deployment?.HoodNameGuard, abi: guardAbi, functionName: 'valid', args: [a.example] }) as const),
+    query: { enabled: !!deployment, staleTime: 300_000 },
+  });
+  return ALPHABETS.map((a, i) => ({ ...a, live: q.data ? q.data[i]?.result === true : undefined }));
 }

@@ -20,6 +20,7 @@ import {NameEncoding} from "../contracts/hood/NameEncoding.sol";
 import {HoodNameLens} from "../contracts/hood/HoodNameLens.sol";
 import {HoodNameRules} from "../contracts/hood/HoodNameRules.sol";
 import {HoodNameGuard} from "../contracts/hood/HoodNameGuard.sol";
+import {NameRulesExtensions} from "./NameRulesExtensions.sol";
 import {CommonBase} from "forge-std/Base.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {ISanctionsList} from "../contracts/hood/HoodRegistrarController.sol";
@@ -34,7 +35,7 @@ import {HoodRegistrarController} from "../contracts/hood/HoodRegistrarController
 ///         and the tests so that both exercise the same setup.
 ///         Whoever calls `_deployAll` ends up owning every contract and the
 ///         registry root; hand both to a multisig before mainnet use.
-abstract contract HoodDeployer is CommonBase {
+abstract contract HoodDeployer is CommonBase, NameRulesExtensions {
     struct Config {
         // The name registrations sit under: a TLD such as "hood", or a
         // name such as "names.example.eth". Lowercase ASCII, dot-separated.
@@ -335,6 +336,9 @@ abstract contract HoodDeployer is CommonBase {
         // From here on the tables can only grow: what an existing name looks
         // like can no longer be changed under its holder.
         rules.seal();
+        // Alphabets added after launch, through the same append-only path a
+        // live deployment uses, so both end up with identical tables.
+        _applyNameExtensions(rules);
     }
 
     /// @dev Lowercase letters, digits, hyphens and dots only, and not the

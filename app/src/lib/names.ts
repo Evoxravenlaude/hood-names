@@ -1,6 +1,7 @@
 import { ens_normalize } from '@adraffy/ens-normalize';
 import { concat, keccak256, toBytes, type Address, type Hex } from 'viem';
 import { deployment, parentName } from '../config';
+import { t } from '../i18n';
 
 export type Parsed =
   | { ok: true; label: string; typed: string; folded: boolean }
@@ -15,7 +16,7 @@ export function parseLabel(input: string): Parsed {
   let typed = input.trim();
   const suffix = '.' + parentName;
   if (typed.toLowerCase().endsWith(suffix)) typed = typed.slice(0, -suffix.length);
-  if (!typed) return { ok: false, typed, reason: 'Type a name.' };
+  if (!typed) return { ok: false, typed, reason: t('Type a name.') };
   let label: string;
   try {
     label = ens_normalize(typed);
@@ -24,19 +25,19 @@ export function parseLabel(input: string): Parsed {
     return { ok: false, typed, reason: explainNormalize(message) };
   }
   if (label.includes('.'))
-    return { ok: false, typed, reason: 'A name cannot contain a dot. Subnames are made from a name you own.' };
+    return { ok: false, typed, reason: t('A name cannot contain a dot. Subnames are made from a name you own.') };
   const length = [...label].length;
-  if (length < 3) return { ok: false, typed, reason: 'Names are at least 3 characters.' };
-  if (length > 63) return { ok: false, typed, reason: 'Names are at most 63 characters.' };
+  if (length < 3) return { ok: false, typed, reason: t('Names are at least 3 characters.') };
+  if (length > 63) return { ok: false, typed, reason: t('Names are at most 63 characters.') };
   return { ok: true, label, typed, folded: label !== typed };
 }
 
 function explainNormalize(message: string): string {
-  if (/disallowed|invalid character/i.test(message)) return 'That name has a character that is not allowed.';
+  if (/disallowed|invalid character/i.test(message)) return t('That name has a character that is not allowed.');
   if (/illegal mixture|whole-script/i.test(message))
-    return 'That name mixes alphabets in a way that is not allowed.';
-  if (/empty label/i.test(message)) return 'A name cannot be empty.';
-  return 'That is not a valid name.';
+    return t('That name mixes alphabets in a way that is not allowed.');
+  if (/empty label/i.test(message)) return t('A name cannot be empty.');
+  return t('That is not a valid name.');
 }
 
 /*

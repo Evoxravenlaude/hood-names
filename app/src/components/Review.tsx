@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { chain, explorerUrl } from '../config';
+import { useT } from '../i18n';
 import type { Described } from '../lib/describe';
 import { eth, shortAddress } from '../lib/format';
 
@@ -61,19 +62,20 @@ function ReviewDialog({ steps, onClose }: { steps: Described[]; onClose: (ok: bo
     };
   }, []);
 
+  const t = useT();
   const many = steps.length > 1;
   return (
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose(false)}>
       <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="review-title" tabIndex={-1} ref={box} style={{ outline: 'none' }}>
         <div className="dialog-head">
-          <h2 id="review-title">{many ? `Review ${steps.length} steps` : 'Review before you sign'}</h2>
+          <h2 id="review-title">{many ? t('Review {n} steps', { n: steps.length }) : t('Review before you sign')}</h2>
           <p className="muted" style={{ margin: '6px 0 0', fontSize: 15 }}>
-            {many ? 'Your wallet will ask you to confirm each step in turn.' : 'Your wallet will ask you to confirm this next.'}
+            {many ? t('Your wallet will ask you to confirm each step in turn.') : t('Your wallet will ask you to confirm this next.')}
           </p>
         </div>
         <ol className="review-steps">
           {steps.map((s, i) => (
-            <li key={i} className="review-step">
+            <li key={i} className="review-step" translate="no">
               {many && <span className="review-num">{i + 1}</span>}
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="review-title">{s.title}</div>
@@ -84,16 +86,18 @@ function ReviewDialog({ steps, onClose }: { steps: Described[]; onClose: (ok: bo
                 )}
                 {s.warning && <p className="review-warning">{s.warning}</p>}
                 <dl className="review-facts">
-                  <div><dt>Contract</dt><dd>{explorerUrl ? <a href={`${explorerUrl}/address/${s.contract}`} target="_blank" rel="noreferrer">{s.contractName} · <span className="mono">{shortAddress(s.contract)}</span></a> : <>{s.contractName} · <span className="mono">{shortAddress(s.contract)}</span></>}</dd></div>
-                  <div><dt>Action</dt><dd className="mono">{s.functionName}</dd></div>
-                  {s.value > 0n && <div><dt>ETH sent</dt><dd>{eth(s.value)}</dd></div>}
+                  <div><dt>{t('Contract')}</dt><dd>{explorerUrl ? <a href={`${explorerUrl}/address/${s.contract}`} target="_blank" rel="noreferrer">{t(s.contractName)} · <span className="mono">{shortAddress(s.contract)}</span></a> : <>{t(s.contractName)} · <span className="mono">{shortAddress(s.contract)}</span></>}</dd></div>
+                  <div><dt>{t('Action')}</dt><dd className="mono">{s.functionName}</dd></div>
+                  {s.value > 0n && <div><dt>{t('ETH sent')}</dt><dd>{eth(s.value)}</dd></div>}
                 </dl>
                 <details className="review-raw">
-                  <summary>What your wallet will show</summary>
+                  <summary>{t('What your wallet will show')}</summary>
                   <p className="hint">
-                    Your wallet may show this as raw data, or say "Unknown signature type" or "Simulation not supported", because it does not
-                    recognise {chain.name} yet. Check that it is sent to <span className="mono">{s.contract}</span> and that the data starts with{' '}
-                    <span className="mono">{s.selector}</span>.
+                    {t('Your wallet may show this as raw data, or say “Unknown signature type” or “Simulation not supported”, because it does not recognise {network} yet. Check that it is sent to {contract} and that the data starts with {selector}.', {
+                      network: chain.name,
+                      contract: <span key="c" className="mono">{s.contract}</span>,
+                      selector: <span key="s" className="mono">{s.selector}</span>,
+                    })}
                   </p>
                   <code className="raw">{s.data}</code>
                 </details>
@@ -102,8 +106,8 @@ function ReviewDialog({ steps, onClose }: { steps: Described[]; onClose: (ok: bo
           ))}
         </ol>
         <div className="dialog-foot">
-          <button type="button" className="btn btn-plain" onClick={() => onClose(false)}>Cancel</button>
-          <button type="button" className="btn btn-primary" onClick={() => onClose(true)}>Continue in wallet</button>
+          <button type="button" className="btn btn-plain" onClick={() => onClose(false)}>{t('Cancel')}</button>
+          <button type="button" className="btn btn-primary" onClick={() => onClose(true)}>{t('Continue in wallet')}</button>
         </div>
       </div>
     </div>

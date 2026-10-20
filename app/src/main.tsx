@@ -12,24 +12,35 @@ import { Manage } from './pages/Manage';
 import { Check } from './pages/Check';
 import { GiftCards } from './pages/GiftCards';
 import { Faucet } from './pages/Faucet';
+import { Stats } from './pages/Stats';
+import { ready, useT } from './i18n';
+import { guardAgainstTranslators } from './lib/translateSafe';
 import { ReviewProvider } from './components/Review';
 import { ErrorBoundary } from './components/ErrorBoundary';
+// Fonts are served from this site, not a third party.
+import '@fontsource-variable/bricolage-grotesque/opsz.css';
+import '@fontsource-variable/geist';
+import '@fontsource-variable/geist-mono';
 import './styles.css';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 });
 
+guardAgainstTranslators();
+
 function NotFound() {
+  const t = useT();
   return (
     <div className="page narrow stack">
-      <h1 className="title">Page not found</h1>
-      <Link to="/">Back to search</Link>
+      <h1 className="title">{t('Page not found')}</h1>
+      <Link to="/">{t('Back to search')}</Link>
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+// The starting language is loaded first, so the page does not flash English.
+ready.finally(() => ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
@@ -45,6 +56,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <Route path="/check" element={<Check />} />
               <Route path="/gift-cards" element={<GiftCards />} />
               <Route path="/faucet" element={<Faucet />} />
+              <Route path="/stats" element={<Stats />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             </ErrorBoundary>
@@ -54,4 +66,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       </QueryClientProvider>
     </WagmiProvider>
   </React.StrictMode>,
-);
+));

@@ -30,7 +30,20 @@ The lookalike and reserved-name state lives in `HoodNameGuard` and survives. A n
 
 ## Adding an alphabet or characters
 
-`HoodNameRules` is sealed at deployment. `addPage`, `addRanges` and `addGroups` still work, but refuse anything that would change how an existing name reads. About 500 characters fit in one `addPage` call. Regenerate the tables with `node tools/gen-name-tables.mjs` and check the test vectors before sending anything.
+`HoodNameRules` is sealed at deployment. `addPage`, `addRanges` and `addGroups` still work, but refuse anything that would change how an existing name reads; version 2 adds `addExtensionPatterns`, for pricing patterns that begin with a code no launch name contains.
+
+1. Add the alphabet to `EXTENSIONS` in `tools/gen-name-tables.mjs` (a new script id, its code point range, and sample names) and run `node tools/gen-name-tables.mjs`. The launch tables (`nametables/page-*.hex`, `meta.json`) must not change: `git diff nametables/page-0.hex nametables/meta.json` should be empty.
+2. `forge test`. `test/Alphabets.t.sol` applies the extensions to a copy of the launch contract as well as to a fresh one, and checks every launch sample still reads as it did.
+3. Add the alphabet to `app/src/lib/scripts.ts` so the site lists it. The site asks the contract which alphabets work, so it only shows it once applied.
+4. Push. The testnet workflow runs `script/ExtendNameRules.s.sol`, which applies any extension not yet applied and skips ones the contract is too old for. By hand:
+
+```bash
+forge script script/ExtendNameRules.s.sol --rpc-url robinhood_testnet --broadcast --slow
+```
+
+The key must own the name rules. After `HandOver`, the multisig sends the same calls (`addExtensionPatterns`, `addPage`, `addGroups`, in that order); `forge script` without `--broadcast` prints them. Each part is checked on-chain before it is sent, so a run that stopped part-way is finished by running it again.
+
+Extensions marked `requiresVersion: 2` (scripts with combining marks, right-to-left scripts) cannot go on a version 1 contract. The testnet runs version 1. To get every alphabet there, deploy fresh: delete `deployments/46630.json` and push (or run the workflow by hand). The workflow then deploys a new set of contracts with every extension applied, reserves the names and opens registration. Names on the old testnet contracts do not carry over.
 
 ## Refreshing the reserved list
 

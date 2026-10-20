@@ -1,0 +1,42 @@
+{
+ "id": 1,
+ "title": "Georgian, Armenian and Ethiopic",
+ "requiresVersion": 1,
+ "pageFiles": [
+  "nametables/ext-1/page-0.hex"
+ ],
+ "pageFirst": [
+  1376
+ ],
+ "groups": [
+  1048576,
+  2097152,
+  4194304
+ ],
+ "probe": "გამარჯობა",
+ "patterns": [],
+ "unpricedLookalikes": 0,
+ "scripts": [
+  {
+   "id": 20,
+   "name": "Georgian",
+   "languages": "Georgian",
+   "rtl": false,
+   "characters": 40
+  },
+  {
+   "id": 21,
+   "name": "Armenian",
+   "languages": "Armenian",
+   "rtl": false,
+   "characters": 40
+  },
+  {
+   "id": 22,
+   "name": "Ethiopic",
+   "languages": "Amharic, Tigrinya",
+   "rtl": false,
+   "characters": 342
+  }
+ ]
+}

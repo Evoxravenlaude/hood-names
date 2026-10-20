@@ -485,20 +485,20 @@ contract AuditFixesTest is BaseTest {
     }
 
     function test_NewCharactersCanStillBeAddedAfterSealing() public {
-        // Thai ko kai, in a new script with its own group.
-        assertFalse(d.guard.valid(unicode"กกก"));
+        // Khmer ka, in a script no table has yet, with its own group.
+        assertFalse(d.guard.valid(unicode"កកក"));
         bytes memory page = abi.encodePacked(
             hex"00",
-            bytes3(uint24(0x0E01)),
-            uint8(20),
+            bytes3(uint24(0x1780)),
+            uint8(28),
             uint8(3),
-            bytes8(bytes3(unicode"ก"))
+            bytes8(bytes3(unicode"ក"))
         );
         d.rules.addPage(page);
         uint256[] memory groups = new uint256[](1);
-        groups[0] = 1 << 20;
+        groups[0] = 1 << 28;
         d.rules.addGroups(groups);
-        assertTrue(d.guard.valid(unicode"กกก"));
+        assertTrue(d.guard.valid(unicode"កកក"));
         // Existing names read exactly as before.
         (bool ok, bytes memory skel) = d.rules.skeleton("a1ice");
         assertTrue(ok);
@@ -514,13 +514,16 @@ contract AuditFixesTest is BaseTest {
             page[o] = bytes1(uint8(cp >> 16));
             page[o + 1] = bytes1(uint8(cp >> 8));
             page[o + 2] = bytes1(uint8(cp));
-            page[o + 3] = bytes1(uint8(21));
+            page[o + 3] = bytes1(uint8(29));
             page[o + 4] = bytes1(uint8(1));
             page[o + 5] = "z";
         }
         uint256 gasBefore = gasleft();
         d.rules.addPage(page);
-        assertLt(gasBefore - gasleft(), 6_000_000);
+        // Each record is looked up in the tables already loaded (launch and
+        // added alphabets), so this grows with them; Robinhood Chain blocks
+        // allow 32M.
+        assertLt(gasBefore - gasleft(), 12_000_000);
     }
 
     function test_CheckingTheLongestNamesStaysAffordable() public view {

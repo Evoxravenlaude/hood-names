@@ -1,3 +1,4 @@
+import { mark } from '../i18n';
 /**
  * Avatars uploaded here are stored on-chain, in the name's avatar record, as
  * a small data URL. No server or pinning service is involved, so the picture
@@ -9,8 +10,8 @@ const MAX_INPUT_BYTES = 15 * 1024 * 1024;
 
 export async function toAvatarDataUrl(file: File): Promise<string> {
   if (!/^image\/(png|jpe?g|webp|gif|avif|heic|heif|bmp)$/i.test(file.type))
-    throw new Error('Choose a photo or picture file (PNG, JPEG, WebP or GIF).');
-  if (file.size > MAX_INPUT_BYTES) throw new Error('That file is over 15 MB. Choose a smaller picture.');
+    throw new Error(mark('Choose a photo or picture file (PNG, JPEG, WebP or GIF).'));
+  if (file.size > MAX_INPUT_BYTES) throw new Error(mark('That file is over 15 MB. Choose a smaller picture.'));
 
   const bitmap = await load(file);
   const side = Math.min(bitmap.width, bitmap.height);
@@ -22,7 +23,7 @@ export async function toAvatarDataUrl(file: File): Promise<string> {
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('This browser cannot resize pictures.');
+    if (!ctx) throw new Error(mark('This browser cannot resize pictures.'));
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, size, size);
     for (const quality of [0.85, 0.72, 0.6, 0.48]) {
@@ -34,7 +35,7 @@ export async function toAvatarDataUrl(file: File): Promise<string> {
       }
     }
   }
-  throw new Error('Could not make this picture small enough. Try a simpler one.');
+  throw new Error(mark('Could not make this picture small enough. Try a simpler one.'));
 }
 
 async function load(file: File): Promise<CanvasImageSource & { width: number; height: number }> {
@@ -53,7 +54,7 @@ async function load(file: File): Promise<CanvasImageSource & { width: number; he
     await img.decode();
     return img;
   } catch {
-    throw new Error('That file could not be read as a picture.');
+    throw new Error(mark('That file could not be read as a picture.'));
   } finally {
     URL.revokeObjectURL(url);
   }

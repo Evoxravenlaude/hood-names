@@ -11,6 +11,7 @@ import { eth, token, usd } from '../lib/format';
 import { refHash, useControllerInfo, useNameStatus, usePrimaryName, useStablecoin } from '../lib/hooks';
 import { fullName, nodeOf, parseLabel } from '../lib/names';
 import { useTx } from '../lib/tx';
+import { useT } from '../i18n';
 
 type Pay = 'eth' | 'token' | 'points';
 
@@ -57,12 +58,13 @@ function savePending(p: Pending | null, label: string, owner: Address) {
 const randomSecret = (): Hex => toHex(crypto.getRandomValues(new Uint8Array(32)));
 
 export function Register() {
+  const t = useT();
   const params = useParams();
   const parsed = parseLabel(decodeURIComponent(params.label ?? ''));
   if (!parsed.ok) {
     return (
       <div className="page narrow">
-        <Link to="/" className="back">← Back to search</Link>
+        <Link to="/" className="back">← {t('Back to search')}</Link>
         <p className="error-text">{parsed.reason}</p>
       </div>
     );
@@ -71,6 +73,7 @@ export function Register() {
 }
 
 function RegisterName({ label }: { label: string }) {
+  const t = useT();
   const config = useConfig();
   const { address } = useAccount();
   const status = useNameStatus(label);
@@ -101,8 +104,8 @@ function RegisterName({ label }: { label: string }) {
 
   useEffect(() => setPending(loadPending(label, address)), [label, address]);
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now() / 1000), 1000);
-    return () => clearInterval(t);
+    const id = setInterval(() => setNow(Date.now() / 1000), 1000);
+    return () => clearInterval(id);
   }, []);
   useEffect(() => {
     if (coin.enabled && pay === 'eth' && !pending) setPay('token');
@@ -177,9 +180,17 @@ function RegisterName({ label }: { label: string }) {
   if (s && s.state !== 'Available' && !pending && !registered) {
     return (
       <div className="page narrow">
-        <Link to={`/?q=${encodeURIComponent(label)}`} className="back">← Back to search</Link>
+        <Link to={`/?q=${encodeURIComponent(label)}`} className="back">← {t('Back to search')}</Link>
         <div className="notice warn" style={{ marginTop: 16 }}>
-          <p>{fullName(label)} cannot be registered right now ({s.state === 'Similar' ? 'it looks like a registered name' : s.state.toLowerCase()}).</p>
+          <p>
+            {s.state === 'Similar'
+              ? t('{name} cannot be registered right now: it looks like a registered name.', { name: fullName(label) })
+              : s.state === 'Reserved'
+                ? t('{name} cannot be registered: it is reserved.', { name: fullName(label) })
+                : s.state === 'Invalid'
+                  ? t('{name} cannot be registered: it is not an allowed name.', { name: fullName(label) })
+                  : t('{name} cannot be registered right now: it is taken.', { name: fullName(label) })}
+          </p>
         </div>
       </div>
     );
@@ -201,7 +212,7 @@ function RegisterName({ label }: { label: string }) {
     };
     await tx.run([
       {
-        label: 'Reserving the name',
+        label: t('Reserving the name'),
         args: async () => {
           const commitment = await readContract(config, {
             address: deployment!.HoodRegistrarController,
@@ -243,12 +254,12 @@ function RegisterName({ label }: { label: string }) {
       : 0n;
     if (isToken && allowed < fresh.amountDue) {
       steps.push({
-        label: `Allowing ${coin.symbol} payment`,
+        label: t('Allowing {token} payment', { token: coin.symbol }),
         args: () => ({ address: payment.token, abi: erc20Abi, functionName: 'approve', args: [deployment!.HoodRegistrarController, fresh.amountDue] }),
       });
     }
     steps.push({
-      label: 'Registering',
+      label: t('Registering'),
       args: () => ({
         address: deployment!.HoodRegistrarController,
         abi: controllerAbi,
@@ -277,96 +288,107 @@ function RegisterName({ label }: { label: string }) {
     ? payment.token !== zeroAddress
       ? token(q.amountDue, coin.decimals, coin.symbol)
       : q.amountDue === 0n
-        ? 'Covered by points'
+        ? t('Covered by points')
         : eth(q.amountDue)
     : '…';
   const clock = `${Math.floor(waitLeft / 60)}:${String(waitLeft % 60).padStart(2, '0')}`;
 
   const steps = [
-    ['Reserve the name', 'First wallet confirmation. Only the network fee.'],
-    ['Wait about a minute', 'Keeps your choice private until it is locked in.'],
-    ['Confirm and pay', 'Second confirmation. The name is yours.'],
+    [t('Reserve the name'), t('First wallet confirmation. Only the network fee.')],
+    [t('Wait about a minute'), t('Keeps your choice private until it is locked in.')],
+    [t('Confirm and pay'), t('Second confirmation. The name is yours.')],
   ];
+  const waitTotal = Number(minAge ?? 60n) + 3;
+  const waited = waitTotal ? Math.min(1, 1 - waitLeft / waitTotal) : 0;
+  const yearsLabel = (n: number) => (n === 1 ? t('1 year') : t('{n} years', { n }));
 
   return (
     <div className="page">
-      <Link to={`/?q=${encodeURIComponent(label)}`} className="back">← Back to search</Link>
+      <Link to={`/?q=${encodeURIComponent(label)}`} className="back">← {t('Back to search')}</Link>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '12px 20px', margin: '16px 0 32px' }}>
-        <h1 className="name-title">{label}<span className="dim">.{parentName}</span></h1>
-        {registered ? <Status tone="good">Yours</Status> : <Status tone="good">Available</Status>}
+        <h1 className="name-title" translate="no"><bdi>{label}</bdi><span className="dim">.{parentName}</span></h1>
+        {registered ? <Status tone="good">{t('Yours')}</Status> : <Status tone="good">{t('Available')}</Status>}
       </div>
 
       {registered ? (
         <div className="card card-pad stack" style={{ maxWidth: 640 }}>
-          <h2>{fullName(label)} is yours.</h2>
-          <p className="muted" style={{ margin: 0 }}>It already points to your wallet{primary ? ' and is your primary name' : ''}. Add your socials and an avatar next.</p>
+          <h2>{t('{name} is yours.', { name: fullName(label) })}</h2>
+          <p className="muted" style={{ margin: 0 }}>
+            {primary
+              ? t('It already points to your wallet and is your primary name. Add your socials and a profile picture next.')
+              : t('It already points to your wallet. Add your socials and a profile picture next.')}
+          </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <Link className="btn btn-primary" to={`/name/${encodeURIComponent(label)}`}>Set up {fullName(label)}</Link>
-            <Link className="btn btn-plain" to="/names">My names</Link>
+            <Link className="btn btn-primary" to={`/name/${encodeURIComponent(label)}`}>{t('Set up {name}', { name: fullName(label) })}</Link>
+            <Link className="btn btn-plain" to="/names">{t('My names')}</Link>
           </div>
-          <TxNotice state={tx.state} success="Registered." />
+          <TxNotice state={tx.state} success={t('Registered.')} />
         </div>
       ) : (
         <div className="row">
           <div className="main-col">
             <section className="card card-pad stack">
-              <h2>How long</h2>
-              <div className="choice-grid" role="group" aria-label="Registration length">
+              <h2>{t('How long')}</h2>
+              <div className="choice-grid" role="group" aria-label={t('Registration length')}>
                 {[1, 2, 3, 5].map((y) => (
                   <button key={y} type="button" className="choice" aria-pressed={Number(duration / YEAR) === y} disabled={!!pending} onClick={() => setYears(y)}>
-                    {y} {y === 1 ? 'year' : 'years'}
+                    {yearsLabel(y)}
                   </button>
                 ))}
               </div>
-              <p className="hint">Renew any time before it expires. After expiry there are 90 days to renew before anyone else can take it.</p>
+              <p className="hint">{t('Renew any time before it expires. After expiry there are 90 days to renew before anyone else can take it.')}</p>
             </section>
 
             <section className="card card-pad stack">
-              <h2>Pay with</h2>
-              <div className="choice-grid" role="group" aria-label="Payment">
+              <h2>{t('Pay with')}</h2>
+              <div className="choice-grid" role="group" aria-label={t('Payment')}>
                 {coin.enabled && (
                   <button type="button" className="choice" aria-pressed={pay === 'token'} onClick={() => setPay('token')}>
                     {coin.symbol}
-                    <span className="sub">Balance {token(coin.balance, coin.decimals, coin.symbol)}</span>
+                    <span className="sub" translate="no">{t('Balance {amount}', { amount: token(coin.balance, coin.decimals, coin.symbol) })}</span>
                   </button>
                 )}
                 <button type="button" className="choice" aria-pressed={pay === 'eth'} onClick={() => setPay('eth')}>
                   ETH
-                  <span className="sub">Balance {eth(ethBalance.data?.value, 4)}</span>
+                  <span className="sub" translate="no">{t('Balance {amount}', { amount: eth(ethBalance.data?.value, 4) })}</span>
                 </button>
                 {modules.points && (
                   <button type="button" className="choice" aria-pressed={pay === 'points'} onClick={() => setPay('points')}>
-                    Points
-                    <span className="sub">{usd(points.data ?? 0n)} from gift cards, rest in ETH</span>
+                    {t('Points')}
+                    <span className="sub" translate="no">{t('{amount} from gift cards, rest in ETH', { amount: usd(points.data ?? 0n) })}</span>
                   </button>
                 )}
               </div>
-              {coin.isTest && <p className="hint">tUSD is a free test dollar on this network. Claim some on the <Link to="/faucet">test tokens</Link> page.</p>}
+              {coin.isTest && <p className="hint">{t('tUSD is a free test dollar on this network. Claim some on the {link} page.', { link: <Link key="f" to="/faucet">{t('test tokens')}</Link> })}</p>}
             </section>
 
             <section className="card card-pad stack" style={{ gap: 18 }}>
-              <h2>Set up</h2>
+              <h2>{t('Set up')}</h2>
               <label className="check">
                 <input type="checkbox" checked={pending ? pending.reg.reverseRecord === 1 : primary} disabled={!!pending} onChange={() => setPrimary(!primary)} />
                 <span>
-                  <span style={{ display: 'block', fontWeight: 500 }}>Make it my primary name</span>
+                  <span style={{ display: 'block', fontWeight: 600 }}>{t('Make it my primary name')}</span>
                   <span className="hint">
                     {currentPrimary.data
-                      ? `Apps show ${fullName(label)} instead of ${currentPrimary.data}.`
-                      : `Apps show ${fullName(label)} instead of your address.`}
+                      ? t('Apps show {name} instead of {other}.', { name: fullName(label), other: currentPrimary.data })
+                      : t('Apps show {name} instead of your address.', { name: fullName(label) })}
                   </span>
                 </span>
               </label>
               {modules.referrals && (
                 <div className="field">
-                  <label htmlFor="ref">Referred by <span className="faint" style={{ fontWeight: 400 }}>(optional)</span></label>
+                  <label htmlFor="ref">{t('Referred by')} <span className="faint" style={{ fontWeight: 400 }}>{t('(optional)')}</span></label>
                   <div className="input-wrap" style={{ maxWidth: 360 }}>
-                    <input id="ref" value={refText} disabled={!!pending} onChange={(e) => setRefText(e.target.value)} autoCapitalize="off" spellCheck={false} />
-                    <span className="mono dim">.{parentName}</span>
+                    <input id="ref" value={refText} disabled={!!pending} onChange={(e) => setRefText(e.target.value)} autoCapitalize="off" spellCheck={false} translate="no" />
+                    <span className="nameface dim" translate="no">.{parentName}</span>
                   </div>
                   {referrerLabel && (
                     <p className="hint">
-                      {referrerPayee.isLoading ? 'Checking…' : referrerOk ? `${fullName(referrerLabel)} earns a commission and you get a discount.` : `${fullName(referrerLabel)} can't be used as a referrer, so no discount applies.`}
+                      {referrerPayee.isLoading
+                        ? t('Checking…')
+                        : referrerOk
+                          ? t('{name} earns a commission and you get a discount.', { name: fullName(referrerLabel) })
+                          : t('{name} can’t be used as a referrer, so no discount applies.', { name: fullName(referrerLabel) })}
                     </p>
                   )}
                 </div>
@@ -377,53 +399,54 @@ function RegisterName({ label }: { label: string }) {
           <aside className="side-col">
             <div className="card" style={{ overflow: 'hidden' }}>
               <div className="card-pad stack" style={{ gap: 14 }}>
-                <h2>Summary</h2>
-                <div className="line"><span className="k">{fullName(label)} × {Number(duration / YEAR)} {duration / YEAR === 1n ? 'year' : 'years'}</span><span>{usd(q?.usdBase)}</span></div>
-                {q && q.usdPremium > 0n && <div className="line"><span className="k">Release premium</span><span>{usd(q.usdPremium)}</span></div>}
-                {q && q.pointsUsed > 0n && <div className="line"><span className="k">Points</span><span>−{usd(q.pointsUsed)}</span></div>}
+                <h2>{t('Summary')}</h2>
+                <div className="line" translate="no"><span className="k">{fullName(label)} × {yearsLabel(Number(duration / YEAR))}</span><span>{usd(q?.usdBase)}</span></div>
+                {q && q.usdPremium > 0n && <div className="line" translate="no"><span className="k">{t('Release premium')}</span><span>{usd(q.usdPremium)}</span></div>}
+                {q && q.pointsUsed > 0n && <div className="line" translate="no"><span className="k">{t('Points')}</span><span>−{usd(q.pointsUsed)}</span></div>}
                 {q && q.refereeDiscount > 0n && (
-                  <div className="line"><span className="k">Referral discount</span><span>−{payment.token !== zeroAddress ? token(q.refereeDiscount, coin.decimals, coin.symbol) : eth(q.refereeDiscount)}</span></div>
+                  <div className="line" translate="no"><span className="k">{t('Referral discount')}</span><span>−{payment.token !== zeroAddress ? token(q.refereeDiscount, coin.decimals, coin.symbol) : eth(q.refereeDiscount)}</span></div>
                 )}
-                <div className="total"><span style={{ fontWeight: 600 }}>You pay</span><span className="price">{amount}</span></div>
+                <div className="total" translate="no"><span style={{ fontWeight: 600 }}>{t('You pay')}</span><span className="price">{amount}</span></div>
                 {pricedShorter && pricing.data && (
-                  <p className="hint">Priced as a {pricing.data[0].toString()}-character name, because it reads like one.</p>
+                  <p className="hint">{t('Priced as a {n}-character name, because it reads like one.', { n: pricing.data[0].toString() })}</p>
                 )}
-                <p className="hint" style={{ textAlign: 'right' }}>Plus the network fee.</p>
+                <p className="hint" style={{ textAlign: 'right' }}>{t('Plus the network fee.')}</p>
               </div>
               <div className="card-foot stack">
                 <ol className="steps">
-                  {steps.map(([t, sub], i) => (
-                    <li key={t}>
+                  {steps.map(([title, sub], i) => (
+                    <li key={i}>
                       <span className={'dot' + (step > i ? ' done' : step === i ? ' now' : '')}>{step > i ? '✓' : i + 1}</span>
-                      <span><span className="t">{t}</span><span className="s">{sub}</span></span>
+                      <span><span className="t">{title}</span><span className="s">{sub}</span></span>
                     </li>
                   ))}
                 </ol>
                 {!address ? (
-                  <ConnectPrompt what="register a name" />
+                  <ConnectPrompt what={t('register a name')} />
                 ) : paused ? (
-                  <p className="hint">Registration has not opened yet.</p>
+                  <p className="hint">{t('Registration has not opened yet.')}</p>
                 ) : expired ? (
                   <>
-                    <p className="error-text">The reservation expired before it was completed.</p>
-                    <button type="button" className="btn btn-plain" onClick={startOver}>Start again</button>
+                    <p className="error-text">{t('The reservation expired before it was completed.')}</p>
+                    <button type="button" className="btn btn-plain" onClick={startOver}>{t('Start again')}</button>
                   </>
                 ) : step === 0 ? (
                   <button type="button" className="btn btn-primary btn-lg btn-block" disabled={tx.state.busy || !q} onClick={startCommit}>
-                    Reserve {fullName(label)}
+                    {t('Reserve {name}', { name: fullName(label) })}
                   </button>
                 ) : step === 1 ? (
-                  <button type="button" className="btn btn-lg btn-block" disabled style={{ background: 'var(--faint)', color: '#fff' }}>
-                    Waiting… {clock}
+                  <button type="button" className="btn btn-lg btn-block wait-btn" disabled>
+                    <span className="wait-fill" style={{ width: `${Math.round(waited * 100)}%` }} aria-hidden="true" />
+                    <span className="wait-text">{t('Waiting… {time}', { time: clock })}</span>
                   </button>
                 ) : (
                   <button type="button" className="btn btn-primary btn-lg btn-block" disabled={tx.state.busy || !q} onClick={finish}>
-                    Confirm and pay
+                    {t('Confirm and pay')}
                   </button>
                 )}
                 <TxNotice state={tx.state} />
                 {pending && !tx.state.busy && (
-                  <button type="button" className="linkish" onClick={startOver}>Change the options and start again</button>
+                  <button type="button" className="linkish" onClick={startOver}>{t('Change the options and start again')}</button>
                 )}
               </div>
             </div>

@@ -118,6 +118,15 @@ jobs:
           PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
         run: forge script script/SetUpGiftCards.s.sol --rpc-url "$RPC" --broadcast
 
+      - name: Add alphabets to the name rules
+        # Append-only: names that were allowed stay exactly as they were.
+        # Each part is checked first, so a run that stopped part-way just
+        # carries on. Alphabets that need a newer name rules contract are
+        # skipped and listed in the log.
+        env:
+          PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+        run: forge script script/ExtendNameRules.s.sol --rpc-url "$RPC" --broadcast --slow
+
       - name: Publish contract source on the explorer
         continue-on-error: true
         run: tools/verify-contracts.sh 46630 "$RPC" https://explorer.testnet.chain.robinhood.com/api/

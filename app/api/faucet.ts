@@ -100,7 +100,7 @@ export default async function handler(req: Req, res: Res) {
     if ((await reader.getChainId()) !== CHAIN_ID) return res.status(500).json({ error: 'The faucet is pointed at the wrong network.' });
     const balance = await reader.getBalance({ address: to });
     if (balance >= s.maxBalance)
-      return res.status(400).json({ error: `This wallet already has ${formatEther(balance)} test ETH, enough to get going.` });
+      return res.status(400).json({ error: 'This wallet already has enough test ETH to get going.', balance: formatEther(balance) });
   } catch {
     return res.status(502).json({ error: 'The faucet could not reach the network. Try again shortly.' });
   }

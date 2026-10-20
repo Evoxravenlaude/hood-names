@@ -11,10 +11,13 @@ import { date, eth, token, usd } from '../lib/format';
 import { useOwnedNames, usePointsActivity, usePrimaryName, useStablecoin } from '../lib/hooks';
 import { fullName } from '../lib/names';
 import { useTx } from '../lib/tx';
+import { tn, useT } from '../i18n';
+import { NameText } from '../components/Bits';
 
 const DAY = 86400n;
 
 export function MyNames() {
+  const t = useT();
   const { address } = useAccount();
   const owned = useOwnedNames(address);
   const primary = usePrimaryName(address);
@@ -24,36 +27,39 @@ export function MyNames() {
   return (
     <div className="page stack" style={{ gap: 28 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 16 }}>
-        <h1 className="title" style={{ marginRight: 'auto' }}>My names</h1>
-        <Link className="btn btn-primary" to="/">Get a name</Link>
+        <h1 className="title" style={{ marginRight: 'auto' }}>{t('My names')}</h1>
+        <Link className="btn btn-primary" to="/">{t('Get a name')}</Link>
       </div>
 
       {!address ? (
-        <ConnectPrompt what="see your names" />
+        <ConnectPrompt what={t('see your names')} />
       ) : (
         <>
           {lapsed.map((n) => (
             <div key={n.label} className="notice warn" role="alert">
-              <p><strong>{fullName(n.label)} has expired.</strong> It has stopped working. Renew by {date(n.status.expires + GRACE_PERIOD)} or anyone can register it.</p>
-              <Link className="btn btn-danger" to={`/name/${encodeURIComponent(n.label)}?tab=ownership`}>Renew now</Link>
+              <p>
+                <strong>{t('{name} has expired.', { name: fullName(n.label) })}</strong>{' '}
+                {t('It has stopped working. Renew by {date} or anyone can register it.', { date: date(n.status.expires + GRACE_PERIOD) })}
+              </p>
+              <Link className="btn btn-danger" to={`/name/${encodeURIComponent(n.label)}?tab=ownership`}>{t('Renew now')}</Link>
             </div>
           ))}
 
           <section className="card" style={{ overflow: 'hidden' }}>
             {owned.isLoading ? (
-              <p className="card-pad muted" style={{ margin: 0 }}>Looking up your names…</p>
+              <p className="card-pad muted" style={{ margin: 0 }}>{t('Looking up your names…')}</p>
             ) : owned.isError ? (
-              <p className="card-pad error-text" style={{ margin: 0 }}>Could not load your names. Try again in a moment.</p>
+              <p className="card-pad error-text" style={{ margin: 0 }}>{t('Could not load your names. Try again in a moment.')}</p>
             ) : !owned.data?.length ? (
               <div className="card-pad stack">
-                <p className="muted" style={{ margin: 0 }}>You don't hold any names yet.</p>
-                <Link to="/">Search for one</Link>
+                <p className="muted" style={{ margin: 0 }}>{t('You don’t hold any names yet.')}</p>
+                <Link to="/">{t('Search for one')}</Link>
               </div>
             ) : (
               <div className="table-wrap">
                 <table className="list fluid">
                   <thead>
-                    <tr><th scope="col">Name</th><th scope="col">Status</th><th scope="col" className="hide-sm">Expires</th><th scope="col"><span className="sr-only">Actions</span></th></tr>
+                    <tr><th scope="col">{t('Name')}</th><th scope="col">{t('Status')}</th><th scope="col" className="hide-sm">{t('Expires')}</th><th scope="col"><span className="sr-only">{t('Actions')}</span></th></tr>
                   </thead>
                   <tbody>
                     {owned.data.map(({ label, status }) => {
@@ -63,16 +69,16 @@ export function MyNames() {
                         <tr key={label}>
                           <td style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <Avatar label={label} size={32} />
-                            <Link className="name-link" to={`/name/${encodeURIComponent(label)}`}>{name}</Link>
-                            {primary.data === name && <span className="tag">Primary</span>}
+                            <Link className="name-link" to={`/name/${encodeURIComponent(label)}`}><NameText>{name}</NameText></Link>
+                            {primary.data === name && <span className="tag">{t('Primary')}</span>}
                           </td>
                           <td style={{ color: status.state === 'Grace' || soon ? 'var(--warn)' : undefined }}>
-                            {status.state === 'Grace' ? 'Expired · grace period' : soon ? `Expires in ${Number((status.expires - now) / DAY)} days` : 'Active'}
+                            {status.state === 'Grace' ? t('Expired, in grace period') : soon ? (status.expires - now < DAY ? t('Expires within a day') : tn(Number((status.expires - now) / DAY), 'Expires in {n} day', 'Expires in {n} days', { n: Number((status.expires - now) / DAY) })) : t('Active')}
                           </td>
-                          <td className="hide-sm">{date(status.expires)}</td>
+                          <td className="hide-sm" translate="no">{date(status.expires)}</td>
                           <td>
                             <Link to={`/name/${encodeURIComponent(label)}${status.state === 'Grace' || soon ? '?tab=ownership' : ''}`}>
-                              {status.state === 'Grace' || soon ? 'Renew' : 'Manage'}
+                              {status.state === 'Grace' || soon ? t('Renew') : t('Manage')}
                             </Link>
                           </td>
                         </tr>
@@ -97,6 +103,7 @@ export function MyNames() {
 }
 
 function Points() {
+  const t = useT();
   const { address } = useAccount();
   const points = useReadContract({
     address: deployment?.HoodPointsLedger,
@@ -107,15 +114,16 @@ function Points() {
   });
   return (
     <section className="card card-pad stack" style={{ gap: 10 }}>
-      <div className="eyebrow" style={{ color: 'var(--faint)' }}>Gift-card points</div>
-      <div className="figure">{usd(points.data ?? 0n)}</div>
-      <p className="muted" style={{ margin: 0, fontSize: 15 }}>Spend them on a registration or renewal. Points never expire.</p>
-      {modules.giftCards && <Link to="/gift-cards">Buy or redeem gift cards</Link>}
+      <div className="eyebrow">{t('Gift-card points')}</div>
+      <div className="figure" translate="no">{usd(points.data ?? 0n)}</div>
+      <p className="muted" style={{ margin: 0, fontSize: 15 }}>{t('Spend them on a registration or renewal. Points never expire.')}</p>
+      {modules.giftCards && <Link to="/gift-cards">{t('Buy or redeem gift cards')}</Link>}
     </section>
   );
 }
 
 function Referrals() {
+  const t = useT();
   const { address } = useAccount();
   const coin = useStablecoin();
   const tx = useTx();
@@ -126,40 +134,42 @@ function Referrals() {
     args: address && coin.address ? [address, coin.address] : undefined,
     query: { enabled: !!address && coin.enabled },
   });
-  const withdraw = (t: `0x${string}`) =>
-    tx.run([{ label: 'Withdrawing', args: () => ({ address: deployment!.HoodReferralHub, abi: referralHubAbi, functionName: 'withdraw', args: [t] }) }]);
+  const withdraw = (asset: `0x${string}`) =>
+    tx.run([{ label: t('Withdrawing'), args: () => ({ address: deployment!.HoodReferralHub, abi: referralHubAbi, functionName: 'withdraw', args: [asset] }) }]);
   return (
     <section className="card card-pad stack" style={{ gap: 10 }}>
-      <div className="eyebrow" style={{ color: 'var(--faint)' }}>Referral earnings</div>
-      <div className="figure">{eth(inEth.data ?? 0n, 5)}</div>
-      {coin.enabled && <div className="muted">{token(inToken.data ?? 0n, coin.decimals, coin.symbol)}</div>}
-      <p className="muted" style={{ margin: 0, fontSize: 15 }}>Anyone who enters one of your names as their referrer earns you a commission, and gets a discount.</p>
+      <div className="eyebrow">{t('Referral earnings')}</div>
+      <div className="figure" translate="no">{eth(inEth.data ?? 0n, 5)}</div>
+      {coin.enabled && <div className="muted" translate="no">{token(inToken.data ?? 0n, coin.decimals, coin.symbol)}</div>}
+      <p className="muted" style={{ margin: 0, fontSize: 15 }}>{t('Anyone who enters one of your names as their referrer earns you a commission, and gets a discount.')}</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-        <button type="button" className="btn btn-plain" disabled={!inEth.data || tx.state.busy} onClick={() => withdraw(zeroAddress)}>Withdraw ETH</button>
+        <button type="button" className="btn btn-plain" disabled={!inEth.data || tx.state.busy} onClick={() => withdraw(zeroAddress)}>{t('Withdraw ETH')}</button>
         {coin.enabled && (
-          <button type="button" className="btn btn-plain" disabled={!inToken.data || tx.state.busy} onClick={() => withdraw(coin.address!)}>Withdraw {coin.symbol}</button>
+          <button type="button" className="btn btn-plain" disabled={!inToken.data || tx.state.busy} onClick={() => withdraw(coin.address!)}>{t('Withdraw {token}', { token: coin.symbol })}</button>
         )}
       </div>
-      <TxNotice state={tx.state} success="Sent to your wallet." />
+      <TxNotice state={tx.state} success={t('Sent to your wallet.')} />
     </section>
   );
 }
 
 /** Testnet only: where to get test tokens. */
 function TestDollars() {
+  const t = useT();
   const coin = useStablecoin();
   if (!chain.testnet) return null;
   return (
     <section className="card card-pad stack" style={{ gap: 10 }}>
-      <div className="eyebrow" style={{ color: 'var(--faint)' }}>Test tokens</div>
-      {coin.isTest && <div className="figure">{token(coin.balance ?? 0n, coin.decimals, coin.symbol)}</div>}
-      <p className="muted" style={{ margin: 0, fontSize: 15 }}>Test ETH for fees and test dollars for paying, all without value.</p>
-      <Link className="btn btn-plain" to="/faucet">Get test tokens</Link>
+      <div className="eyebrow">{t('Test tokens')}</div>
+      {coin.isTest && <div className="figure" translate="no">{token(coin.balance ?? 0n, coin.decimals, coin.symbol)}</div>}
+      <p className="muted" style={{ margin: 0, fontSize: 15 }}>{t('Test ETH for fees and test dollars for paying, all without value.')}</p>
+      <Link className="btn btn-plain" to="/faucet">{t('Get test tokens')}</Link>
     </section>
   );
 }
 
 function PointsActivity() {
+  const t = useT();
   const { address } = useAccount();
   const activity = usePointsActivity(address);
   useEffect(() => {
@@ -169,17 +179,17 @@ function PointsActivity() {
   if (!activity.data?.length) return null;
   return (
     <section id="points" className="card card-pad stack" style={{ gap: 6 }}>
-      <h2>Points activity</h2>
-      <p className="muted" style={{ margin: 0, fontSize: 15 }}>Gift cards you redeemed, and the names they paid for.</p>
+      <h2>{t('Points activity')}</h2>
+      <p className="muted" style={{ margin: 0, fontSize: 15 }}>{t('Gift cards you redeemed, and the names they paid for.')}</p>
       <ul className="rows" style={{ marginTop: 8 }}>
         {activity.data.map((a) => (
           <li key={a.tx + a.kind}>
-            <span className="grow">{a.what}</span>
-            <span className="faint small">{a.timestamp ? date(a.timestamp) : `block ${a.block}`}</span>
-            <span style={{ fontWeight: 600, color: a.kind === 'credit' ? 'var(--accent)' : undefined, minWidth: 90, textAlign: 'right' }}>
+            <span className="grow" translate="no">{a.what}</span>
+            <span className="faint small" translate="no">{a.timestamp ? date(a.timestamp) : t('block {n}', { n: String(a.block) })}</span>
+            <span translate="no" style={{ fontWeight: 600, color: a.kind === 'credit' ? 'var(--good)' : undefined, minWidth: 90, textAlign: 'right' }}>
               {a.kind === 'credit' ? '+' : '−'}{usd(a.amount)}
             </span>
-            {explorerUrl && <a className="small" href={`${explorerUrl}/tx/${a.tx}`} target="_blank" rel="noreferrer">View</a>}
+            {explorerUrl && <a className="small" href={`${explorerUrl}/tx/${a.tx}`} target="_blank" rel="noreferrer">{t('View')}</a>}
           </li>
         ))}
       </ul>

@@ -18,7 +18,7 @@ forge test
 
 ## The site
 
-`app/` is the web app: search, register, my names, records, subnames, renew, send, check a name before paying it, and gift cards. See `app/README.md`.
+`app/` is the web app, in twelve languages: search, register, my names, records, subnames, renew, send, check a name before paying it, gift cards and stats. See `app/README.md`.
 
 ## Getting it online
 
@@ -75,7 +75,7 @@ This moves the registry root, every node above the parent name, and ownership of
 | `HoodNameLens` | One read that tells a wallet whether a name is safe to send to: state, expiry, holder, when it last changed hands, and whether its resolver is allowed. |
 | `DiscountValidators` | `SignedDiscountValidator` (an operator attests a verified account; one free name per account) and `ERC721HolderDiscountValidator` (one per pass token). |
 | `NameEncoding` | Namehash and DNS encoding for the parent name. |
-| `HoodNameRules` | Decides which names are well-formed and what each one looks like. Seven alphabets, one per name; lookalike characters reduce to the same "skeleton". The character tables are generated from Unicode's confusables data by `tools/gen-name-tables.mjs` and sealed at deployment: they can grow, but an existing name can never be made to read differently. |
+| `HoodNameRules` | Decides which names are well-formed and what each one looks like. Twenty-three alphabets, one per name (Latin, Cyrillic, Greek, Chinese, Japanese, Korean, ten Indic scripts, Thai, Lao, Georgian, Armenian, Ethiopic, and Arabic and Hebrew as letters only); lookalike characters reduce to the same "skeleton". The character tables are generated from Unicode's confusables data by `tools/gen-name-tables.mjs` and sealed at deployment: they can grow (`script/ExtendNameRules.s.sol`), but an existing name can never be made to read differently. Version 2 also requires combining marks in canonical order and keeps right-to-left names to letters only; the testnet runs version 1, which takes the launch alphabets plus Georgian, Armenian and Ethiopic. |
 | `HoodNameGuard` | Holds the reserved names and which name currently holds each skeleton, so a lookalike of a reserved or live name cannot be registered. Lives outside the controller so the state survives a controller replacement. |
 | `HoodRegistrarController` | Commit-reveal registration and renewal. Asks the name guard before issuing a name. Verified-account discounts, optional sanctions screening. Pays in ETH or an accepted stablecoin, spends gift-card points, pays referral commission. `commit`, `register`, `renew`, the `Registration` struct and the `NameRegistered` / `NameRenewed` events keep the ENS shape. |
 | `HoodPriceOracle` | USD rent by label length (owner-adjustable), ETH/USD from a Chainlink-style feed with a staleness check or a fixed fallback rate, and a 21-day decaying premium on released names. |
