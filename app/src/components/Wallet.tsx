@@ -95,6 +95,13 @@ export function WalletButton() {
             {t('Connecting only shares your wallet address with this site. Nothing is signed or sent until you confirm a step.')}
           </span>
           {!choices.length && <span className="small faint" style={{ padding: 12 }}>{t('No browser wallet found. Install one such as MetaMask or Rabby.')}</span>}
+          <div className="menu-foot">
+            <span className="small">{t('New to wallets? These are free browser apps:')}</span>
+            <span className="step-actions">
+              <a href="https://rabby.io" target="_blank" rel="noreferrer" translate="no">Rabby</a>
+              <a href="https://metamask.io/download/" target="_blank" rel="noreferrer" translate="no">MetaMask</a>
+            </span>
+          </div>
           {error && <span className="small" style={{ padding: 12, color: 'var(--warn)' }}>{error.message.split('\n')[0]}</span>}
         </div>
       )}

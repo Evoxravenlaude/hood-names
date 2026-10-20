@@ -9,6 +9,9 @@ import { useT } from '../i18n';
 import { ago, date, usd } from '../lib/format';
 import { useAlphabets, useControllerInfo, useNameStatus, useRegisteredLabels } from '../lib/hooks';
 import { fullName, parseLabel } from '../lib/names';
+import { ResolveDemo } from '../components/ResolveDemo';
+import { GettingStarted } from '../components/GettingStarted';
+import { Tour, tourSeen } from '../components/Tour';
 
 const EXAMPLES = ['sage', 'Sage', 'a1ice', 'robinhood', 'nvda', 'привет', 'नमस्ते', '東京タワー'];
 
@@ -35,17 +38,37 @@ export function Search() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     input.current?.focus({ preventScroll: true });
   };
+  const findName = () => {
+    setTour(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // After the tour has closed and let go of focus.
+    setTimeout(() => input.current?.focus({ preventScroll: true }), 0);
+  };
+  const [tour, setTour] = useState(false);
+  const [firstVisit] = useState(() => !tourSeen());
+  const [tone, setTone] = useState<'good' | 'bad' | 'neutral'>('neutral');
 
   return (
     <div className="page" style={{ paddingTop: 0 }}>
       <section className="hero">
         <h1>{t('One name for your wallet on Robinhood Chain.')}</h1>
-        <p>
-          {t('Send to {example} instead of a long address. Written in your own alphabet, and nobody can register a name that looks like yours.', {
-            example: <NameText key="e">{`sage.${parentName}`}</NameText>,
-          })}
-        </p>
-        <form className="searchbox" role="search" onSubmit={(e) => e.preventDefault()}>
+        <div className="hero-top">
+          <div className="hero-copy">
+            <p>
+              {t('Send to {example} instead of a long address. Written in your own alphabet, and nobody can register a name that looks like yours.', {
+                example: <NameText key="e">{`sage.${parentName}`}</NameText>,
+              })}
+            </p>
+            <button type="button" className={'tour-link' + (firstVisit ? ' fresh' : '')} onClick={() => setTour(true)}>
+              <span className="play" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 1.8v8.4L10 6 3 1.8Z" fill="currentColor" /></svg>
+              </span>
+              {firstVisit ? t('New here? See how it works in 30 seconds') : t('How it works')}
+            </button>
+          </div>
+          <ResolveDemo />
+        </div>
+        <form className="searchbox" role="search" data-tone={query.trim() ? tone : undefined} onSubmit={(e) => e.preventDefault()}>
           <label htmlFor="name-search" className="sr-only">{t('Search for a name')}</label>
           <SearchIcon />
           <input
@@ -71,7 +94,10 @@ export function Search() {
         <JustRegistered />
       </section>
 
-      {query.trim() && <Result input={query} />}
+      {query.trim() && <Result input={query} onTone={setTone} />}
+
+      <GettingStarted onFindName={findName} compact />
+      <Tour open={tour} onClose={() => setTour(false)} onFinish={findName} />
 
       <section className="promises" aria-label={t('How names stay safe')}>
         <Promise
@@ -169,7 +195,7 @@ function Alphabets({ onPick }: { onPick: (name: string) => void }) {
   );
 }
 
-function Result({ input }: { input: string }) {
+function Result({ input, onTone }: { input: string; onTone: (tone: 'good' | 'bad' | 'neutral') => void }) {
   const t = useT();
   const parsed = parseLabel(input);
   const label = parsed.ok ? parsed.label : undefined;
@@ -256,6 +282,8 @@ function Result({ input }: { input: string }) {
 
   const q = quote.data;
   const canBuy = parsed.ok && s?.state === 'Available';
+  const shownTone = !parsed.ok ? 'bad' : s?.state === 'Active' ? 'neutral' : tone;
+  useEffect(() => onTone(shownTone), [shownTone, onTone]);
 
   return (
     <section className="result" aria-live="polite">

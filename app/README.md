@@ -2,6 +2,12 @@
 
 The site for registering and managing names: search, register (paying with ETH, a dollar stablecoin or gift-card points), my names, records and a profile picture, subnames, renew, send, check a name before paying it, gift cards, stats, and a test-token page on testnet.
 
+## Look, motion and first steps
+
+- **Theme.** Robinhood Chain's own palette (warm black, white, Robin Neon `#CCFF00`), dark first, with a light mode on the header switch; the choice is kept and applied before the page draws. Neon is a fill with black text on top, never text on white. Charts use colour-blind-checked palettes for both modes. The site uses its own wordmark: the Robinhood Chain logo and feather are not used or combined with it, as the [brand guidelines](https://docs.robinhood.com/chain/brand-guidelines/) ask.
+- **Motion** answers something: the hero shows an address resolving into a name; a search result and its status arrive; the minute's wait is a countdown ring; buying a name ends with a nameplate and confetti; confirmations ("Saved", "Copied") slide in as toasts; pages ease in. All of it is switched off for people who ask their device for reduced motion.
+- **First steps.** A four-card tour from the hero ("New here?"), a getting-started checklist that ticks itself from the wallet and the chain (connect, switch network, get ETH, pick a name, make it primary, add a picture) with the one button each step needs, a one-tap "Add Robinhood Chain" for wallets that lack it, and help for people with no wallet yet. After buying: share, and the next things to set up.
+
 ## Languages
 
 The site is in English, French, Spanish, Portuguese, German, Turkish, Russian, Hindi, Indonesian, Chinese, Japanese and Korean. The language menu in the header always lists English first, under its own name, so it can be found from any language. The first visit follows the browser's language when it is one of these.
@@ -48,6 +54,7 @@ app/e2e/setup-local.sh                       # local chain with everything deplo
 cd app && VITE_CHAIN_ID=31337 npm run dev    # in another terminal
 CHROMIUM=/path/to/chrome node e2e/local.mjs  # optional: the end-to-end test
 CHROMIUM=/path/to/chrome node e2e/languages.mjs  # optional: language switching
+CHROMIUM=/path/to/chrome node e2e/onboarding.mjs # optional: tour, theme, checklist
 ```
 
 The end-to-end test drives the real site in a browser with a stand-in wallet: it registers two names (ETH and the test dollar), checks reserved and lookalike names and the added alphabets, saves records, creates a subname, buys and redeems a gift card, renews, checks a name and opens the stats. The language test switches to French, Japanese and Hindi and back to English, reloads, and imitates a browser translator to check the site notices it and keeps names updating.

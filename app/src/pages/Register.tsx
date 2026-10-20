@@ -11,6 +11,9 @@ import { eth, token, usd } from '../lib/format';
 import { refHash, useControllerInfo, useNameStatus, usePrimaryName, useStablecoin } from '../lib/hooks';
 import { fullName, nodeOf, parseLabel } from '../lib/names';
 import { useTx } from '../lib/tx';
+import { Confetti, WaitRing } from '../components/Celebrate';
+import { useToast } from '../components/Toast';
+import { chain } from '../config';
 import { useT } from '../i18n';
 
 type Pay = 'eth' | 'token' | 'points';
@@ -74,6 +77,7 @@ export function Register() {
 
 function RegisterName({ label }: { label: string }) {
   const t = useT();
+  const toast = useToast();
   const config = useConfig();
   const { address } = useAccount();
   const status = useNameStatus(label);
@@ -299,30 +303,70 @@ function RegisterName({ label }: { label: string }) {
     [t('Confirm and pay'), t('Second confirmation. The name is yours.')],
   ];
   const waitTotal = Number(minAge ?? 60n) + 3;
-  const waited = waitTotal ? Math.min(1, 1 - waitLeft / waitTotal) : 0;
   const yearsLabel = (n: number) => (n === 1 ? t('1 year') : t('{n} years', { n }));
 
   return (
     <div className="page">
       <Link to={`/?q=${encodeURIComponent(label)}`} className="back">← {t('Back to search')}</Link>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '12px 20px', margin: '16px 0 32px' }}>
-        <h1 className="name-title" translate="no"><bdi>{label}</bdi><span className="dim">.{parentName}</span></h1>
-        {registered ? <Status tone="good">{t('Yours')}</Status> : <Status tone="good">{t('Available')}</Status>}
-      </div>
+      {!registered && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '12px 20px', margin: '16px 0 32px' }}>
+          <h1 className="name-title" translate="no"><bdi>{label}</bdi><span className="dim">.{parentName}</span></h1>
+          <Status tone="good">{t('Available')}</Status>
+        </div>
+      )}
 
       {registered ? (
-        <div className="card card-pad stack" style={{ maxWidth: 640 }}>
+        <div className="yours">
+          <Confetti />
+          <div className="nameplate" translate="no">
+            <div className="np-name"><bdi>{label}</bdi><span className="dim">.{parentName}</span></div>
+            {address && <div className="np-owner">{address.slice(0, 6)}…{address.slice(-4)}</div>}
+          </div>
           <h2>{t('{name} is yours.', { name: fullName(label) })}</h2>
-          <p className="muted" style={{ margin: 0 }}>
+          <p className="lede">
             {primary
               ? t('It already points to your wallet and is your primary name. Add your socials and a profile picture next.')
               : t('It already points to your wallet. Add your socials and a profile picture next.')}
           </p>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <Link className="btn btn-primary" to={`/name/${encodeURIComponent(label)}`}>{t('Set up {name}', { name: fullName(label) })}</Link>
-            <Link className="btn btn-plain" to="/names">{t('My names')}</Link>
+          <div className="share-row">
+            <button
+              type="button"
+              className="btn btn-plain"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(`${window.location.origin}/name/${encodeURIComponent(label)}`);
+                  toast(t('Link copied'));
+                } catch {
+                  /* clipboard blocked */
+                }
+              }}
+            >
+              {t('Copy link')}
+            </button>
+            <a
+              className="btn btn-plain"
+              target="_blank"
+              rel="noreferrer"
+              href={`https://x.com/intent/post?text=${encodeURIComponent(t('I just got {name} on {network}.', { name: fullName(label), network: chain.name }))}&url=${encodeURIComponent(`${window.location.origin}/name/${encodeURIComponent(label)}`)}`}
+            >
+              {t('Share on X')}
+            </a>
           </div>
-          <TxNotice state={tx.state} success={t('Registered.')} />
+          <div className="next-grid">
+            <Link className="next-card" to={`/name/${encodeURIComponent(label)}`}>
+              <span className="t">{t('Add a profile picture')}</span>
+              <span className="s">{t('It shows wherever your name does.')}</span>
+            </Link>
+            <Link className="next-card" to={`/name/${encodeURIComponent(label)}`}>
+              <span className="t">{t('Add your socials')}</span>
+              <span className="s">{t('X, Telegram, a website and a short bio.')}</span>
+            </Link>
+            <Link className="next-card" to={`/check?name=${encodeURIComponent(label)}`}>
+              <span className="t">{t('See it as a sender would')}</span>
+              <span className="s">{t('Check where money sent to it goes.')}</span>
+            </Link>
+          </div>
+          <Link className="btn btn-primary btn-lg" to={`/name/${encodeURIComponent(label)}`}>{t('Set up {name}', { name: fullName(label) })}</Link>
         </div>
       ) : (
         <div className="row">
@@ -413,14 +457,18 @@ function RegisterName({ label }: { label: string }) {
                 <p className="hint" style={{ textAlign: 'right' }}>{t('Plus the network fee.')}</p>
               </div>
               <div className="card-foot stack">
-                <ol className="steps">
-                  {steps.map(([title, sub], i) => (
-                    <li key={i}>
-                      <span className={'dot' + (step > i ? ' done' : step === i ? ' now' : '')}>{step > i ? '✓' : i + 1}</span>
-                      <span><span className="t">{title}</span><span className="s">{sub}</span></span>
+                <div className="stepper">
+                <span className="progress" aria-hidden="true" style={{ transform: `scaleX(${Math.min(step, 2) / 2})` }} />
+                <ol className="stepper-list" aria-label={t('Steps')}>
+                  {steps.map(([title], i) => (
+                    <li key={i} className={'node' + (step > i ? ' done' : step === i ? ' now' : '')} aria-current={step === i ? 'step' : undefined}>
+                      <span className="dot">{step > i ? '✓' : i + 1}</span>
+                      <span className="t">{title}</span>
                     </li>
                   ))}
                 </ol>
+                </div>
+                {step < 3 && <p className="step-help" key={step}>{steps[Math.min(step, 2)][1]}</p>}
                 {!address ? (
                   <ConnectPrompt what={t('register a name')} />
                 ) : paused ? (
@@ -435,12 +483,15 @@ function RegisterName({ label }: { label: string }) {
                     {t('Reserve {name}', { name: fullName(label) })}
                   </button>
                 ) : step === 1 ? (
-                  <button type="button" className="btn btn-lg btn-block wait-btn" disabled>
-                    <span className="wait-fill" style={{ width: `${Math.round(waited * 100)}%` }} aria-hidden="true" />
-                    <span className="wait-text">{t('Waiting… {time}', { time: clock })}</span>
-                  </button>
+                  <>
+                    <WaitRing left={waitLeft} total={waitTotal} label={t('Waiting… {time}', { time: clock })} />
+                    <button type="button" className="btn btn-lg btn-block wait-btn" disabled>
+                      <span className="wait-text">{t('Waiting… {time}', { time: clock })}</span>
+                    </button>
+                    <p className="hint" style={{ textAlign: 'center' }}>{t('Your place is saved. You can leave this page and come back.')}</p>
+                  </>
                 ) : (
-                  <button type="button" className="btn btn-primary btn-lg btn-block" disabled={tx.state.busy || !q} onClick={finish}>
+                  <button type="button" className="btn btn-primary btn-lg btn-block ready-btn" disabled={tx.state.busy || !q} onClick={finish}>
                     {t('Confirm and pay')}
                   </button>
                 )}

@@ -121,8 +121,8 @@ function Verdict({ input }: { input: string }) {
       <div
         style={{
           padding: '22px 28px',
-          background: band === 'warn' ? 'var(--warn-soft)' : band === 'dark' ? 'var(--ink)' : 'var(--accent-soft)',
-          color: band === 'warn' ? 'var(--warn-ink)' : band === 'dark' ? '#fff' : '#14248a',
+          background: band === 'warn' ? 'var(--warn-soft)' : band === 'dark' ? 'var(--warn)' : 'var(--accent)',
+          color: band === 'warn' ? 'var(--warn-ink)' : band === 'dark' ? 'var(--on-warn)' : 'var(--on-accent)',
         }}
       >
         <div style={{ font: '700 24px/1.2 var(--display)', letterSpacing: '-0.02em' }}>{headline}</div>

@@ -13,6 +13,7 @@ import { fullName } from '../lib/names';
 import { useTx } from '../lib/tx';
 import { tn, useT } from '../i18n';
 import { NameText } from '../components/Bits';
+import { GettingStarted } from '../components/GettingStarted';
 
 const DAY = 86400n;
 
@@ -35,6 +36,7 @@ export function MyNames() {
         <ConnectPrompt what={t('see your names')} />
       ) : (
         <>
+          <GettingStarted />
           {lapsed.map((n) => (
             <div key={n.label} className="notice warn" role="alert">
               <p>

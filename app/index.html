@@ -1,11 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
+    <script>
+      // The saved theme, before anything is drawn.
+      try {
+        if (localStorage.getItem('hood-names-theme') === 'light') {
+          document.documentElement.dataset.theme = 'light';
+          document.addEventListener('DOMContentLoaded', function () {
+            var m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute('content', '#f2f2ee');
+          });
+        }
+      } catch (e) {}
+    </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Hood Names</title>
     <meta name="description" content="One name for your wallet on Robinhood Chain. Independent project, not affiliated with Robinhood." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#110e08" />
   </head>
   <body>
     <div id="root"></div>

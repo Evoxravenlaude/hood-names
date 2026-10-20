@@ -160,14 +160,14 @@ try {
   await expectText('Buy');
   await page.getByRole('group', { name: 'Payment' }).getByRole('button', { name: 'tUSD' }).click();
   await page.getByLabel('How many').first().fill('3');
-  await page.getByLabel('For').fill('sage.hood');
+  await page.getByLabel('For', { exact: true }).fill('sage.hood');
   await expectText('sage.hood → ' + ACCOUNT);
   await page.getByRole('button', { name: /^Buy gift card/ }).click();
   await approve(); // the tUSD allowance
   await expectText('Bought.', 90_000);
   await expectText('3 × $5.00', 30_000);
   await page.getByRole('button', { name: 'Send' }).first().click();
-  await page.getByLabel('To').fill('0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC');
+  await page.getByLabel('To', { exact: true }).fill('0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC');
   await page.getByRole('button', { name: 'Send', exact: true }).last().click();
   await approve('Send 1 × $5.00 gift card to 0x3C44');
   await expectText('2 × $5.00', 60_000);

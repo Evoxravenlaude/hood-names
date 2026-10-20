@@ -5,6 +5,7 @@ import { useT } from '../i18n';
 import { useControllerInfo } from '../lib/hooks';
 import { LanguagePicker, TranslationNotice } from './Language';
 import { WalletButton } from './Wallet';
+import { ThemeToggle } from './ThemeToggle';
 
 const link = ({ isActive }: { isActive: boolean }) => 'nav-link' + (isActive ? ' active' : '');
 
@@ -30,6 +31,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="nav-tools">
             <span className={'chip net' + (deployment ? '' : ' off')} translate="no"><span className="led" />{chain.name}</span>
             <LanguagePicker />
+            <ThemeToggle />
             <WalletButton />
           </div>
         </nav>
